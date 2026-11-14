@@ -1,3 +1,4 @@
+import { maskEmail } from '@/lib/maskEmail'
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { CloudOff, Copy, Download, KeyRound, LockKeyhole } from 'lucide-react'
 import { toast } from 'sonner'
@@ -259,7 +260,7 @@ function LockedFlow() {
         </Button>
       </form>
       <div className="mt-6 flex items-center justify-between gap-4 text-sm">
-        <span className="truncate text-muted-foreground">{email}</span>
+        <span className="truncate text-muted-foreground">{email ? maskEmail(email) : null}</span>
         <button
           type="button"
           className="-my-2 shrink-0 py-2 text-link underline-offset-4 hover:underline [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:py-3"
