@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
-import { getAccessUser, isAllowedEmail } from '../worker/auth'
+import { getAccessUser, isAccessMissing, isAllowedEmail } from '../worker/auth'
 
 const TEAM = 'https://demo.cloudflareaccess.com'
 const AUD = 'aud-tag-123'
@@ -22,6 +22,18 @@ afterAll(() => vi.unstubAllGlobals())
 const env = { ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD }
 const reqWith = (token?: string) =>
   new Request('https://notes.example.com/api/me', { headers: token ? { 'Cf-Access-Jwt-Assertion': token } : {} })
+
+describe('isAccessMissing', () => {
+  it('is true when the Access variables are unset or the request has no Access token', () => {
+    expect(isAccessMissing(reqWith('any'), { ACCESS_TEAM_DOMAIN: '', ACCESS_AUD: '' })).toBe(true)
+    expect(isAccessMissing(reqWith(), env)).toBe(true)
+  })
+  it('is false when a token is present, even an invalid one', () => {
+    expect(isAccessMissing(reqWith('not-a-jwt'), env)).toBe(false)
+    const r = new Request('https://x/api/me', { headers: { Cookie: 'CF_Authorization=stale' } })
+    expect(isAccessMissing(r, env)).toBe(false)
+  })
+})
 
 describe('getAccessUser', () => {
   it('accepts a valid Access JWT', async () => {

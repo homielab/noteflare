@@ -1,6 +1,6 @@
 import { Hono, type Context, type Next } from 'hono'
 import { cors } from 'hono/cors'
-import { getAccessUser, isAllowedEmail, type AccessEnv } from './auth'
+import { getAccessUser, isAccessMissing, isAllowedEmail, type AccessEnv } from './auth'
 import { generateToken, hashToken, toApiToken, tokenPrefix, verifyToken, type TokenRow } from './tokens'
 import { openApiSpec } from './openapi'
 import { versionInfo, type UpdateEnv } from './updates'
@@ -58,7 +58,11 @@ api.use('*', async (c, next) => {
     c.set('via', 'token')
   } else {
     const user = await getAccessUser(c.req.raw, c.env)
-    if (!user) return c.json({ error: 'unauthorized' }, 401)
+    if (!user) {
+      // Tell a first-time deployer apart from an expired session (see isAccessMissing).
+      const reason = isAccessMissing(c.req.raw, c.env) ? { reason: 'access_not_set_up' } : {}
+      return c.json({ error: 'unauthorized', ...reason }, 401)
+    }
     c.set('user', user)
     c.set('scope', 'write')
     c.set('via', 'session')

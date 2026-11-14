@@ -69,6 +69,17 @@ export async function getAccessUser(req: Request, env: AccessEnv): Promise<strin
   }
 }
 
+/**
+ * True when a request can't have come through Cloudflare Access: the Access variables
+ * are unset, or the request carries no Access token at all. Access adds a token to every
+ * request it lets through, so a missing one means no Access application covers this
+ * hostname yet. Only used to pick the message a locked-out visitor sees.
+ */
+export function isAccessMissing(req: Request, env: AccessEnv): boolean {
+  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return true
+  return !req.headers.get('Cf-Access-Jwt-Assertion') && !getCookie(req.headers.get('Cookie'), 'CF_Authorization')
+}
+
 function getCookie(header: string | null, name: string): string | null {
   if (!header) return null
   for (const part of header.split(';')) {

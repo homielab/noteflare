@@ -23,6 +23,15 @@ function Gate() {
         </a>
       </Centered>
     )
+  if (status === 'access-missing')
+    return (
+      <Centered>
+        {t('gate.accessMissing')}{' '}
+        <a className="text-link underline" href={t('gate.accessGuideUrl')} target="_blank" rel="noopener">
+          {t('gate.accessGuide')}
+        </a>
+      </Centered>
+    )
   if (status === 'error') return <Centered>{t('gate.serverError')}</Centered>
   if (status === 'offline-empty') return <Centered>{t('gate.offlineEmpty')}</Centered>
   if (status === 'unlocked' && dek)

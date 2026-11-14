@@ -8,6 +8,9 @@ export const vi: Record<MessageKey, string> = {
 
   'gate.sessionExpired': 'Phiên đăng nhập đã hết hạn.',
   'gate.signInAgain': 'Đăng nhập lại',
+  'gate.accessMissing': 'Địa chỉ này chưa được bật Cloudflare Access, nên chưa ai đăng nhập được.',
+  'gate.accessGuide': 'Cách bật',
+  'gate.accessGuideUrl': 'https://noteflare.homielab.com/vi/start/access/',
   'gate.serverError': 'Không kết nối được máy chủ. Kiểm tra mạng rồi tải lại trang.',
   'gate.offlineEmpty': 'Bạn đang offline và máy này chưa có bản sao ghi chú. Kết nối mạng một lần, từ đó NoteFlare dùng được cả khi offline.',
 

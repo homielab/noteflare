@@ -4,6 +4,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Notes
+
+- A deployment with no Cloudflare Access in front of it now says so and links to the setup guide, instead of "Your session has expired".
+
 ## [0.1.0] - 2026-11-17
 
 First public release.

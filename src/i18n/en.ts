@@ -6,6 +6,9 @@ export const en = {
 
   'gate.sessionExpired': 'Your session has expired.',
   'gate.signInAgain': 'Sign in again',
+  'gate.accessMissing': "Cloudflare Access isn't set up for this address yet, so nobody can sign in.",
+  'gate.accessGuide': 'How to turn it on',
+  'gate.accessGuideUrl': 'https://noteflare.homielab.com/start/access/',
   'gate.serverError': "Can't reach the server. Check your connection and reload the page.",
   'gate.offlineEmpty': "You're offline, and this device doesn't have a copy of your notes yet. Connect once and NoteFlare will work offline from then on.",
 
