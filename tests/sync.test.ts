@@ -82,6 +82,15 @@ const settle = async (e: NoteSync) => {
   }
 }
 
+/** Waits for a condition instead of a fixed delay. */
+async function until(condition: () => Promise<boolean>, timeoutMs = 5000) {
+  const start = Date.now()
+  while (!(await condition())) {
+    if (Date.now() - start > timeoutMs) throw new Error('condition not met in time')
+    await new Promise((r) => setTimeout(r, 5))
+  }
+}
+
 /** Simulates another device editing a note directly on the server. */
 async function remoteEdit(id: string, title: string) {
   const cur = server.rows.get(id)!
@@ -114,6 +123,9 @@ describe('offline-first sync', () => {
     await settle(a)
     expect(a.getSnapshot().status.pending).toBe(1)
     expect(server.rows.size).toBe(0)
+    // The edit is encrypted and written to the device in the background; a reload only
+    // finds it once that write has landed, so wait for the write, not for a fixed time.
+    await until(async () => (await store.allOutbox()).length === 1 && (await store.allNotes()).length === 1)
     a.stop()
 
     // App restarts, still offline: note comes from the device cache.
