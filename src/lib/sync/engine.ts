@@ -44,6 +44,8 @@ export interface SyncStatus {
   syncing: boolean
   /** Changes not yet confirmed by the server (queued or waiting for the debounce). */
   pending: number
+  /** When the server last confirmed a pull or a push in this session (device clock); null before the first. */
+  lastSyncedAt: number | null
 }
 
 export interface Snapshot {
@@ -81,7 +83,7 @@ export class NoteSync {
   private snap: Snapshot = {
     notes: new Map(),
     loading: true,
-    status: { online: true, authExpired: false, syncing: false, pending: 0 },
+    status: { online: true, authExpired: false, syncing: false, pending: 0, lastSyncedAt: null },
   }
   private listeners = new Set<() => void>()
   private outbox = new Map<string, OutboxEntry>()
@@ -118,6 +120,11 @@ export class NoteSync {
   private emit(patch: Partial<Snapshot>) {
     this.snap = { ...this.snap, ...patch }
     this.listeners.forEach((fn) => fn())
+  }
+
+  /** The server just confirmed a pull or a push. */
+  private markSynced() {
+    this.setStatus({ online: true, authExpired: false, lastSyncedAt: Date.now() })
   }
 
   private setStatus(patch: Partial<SyncStatus>) {
@@ -179,7 +186,7 @@ export class NoteSync {
     }
     try {
       await this.pull(opts.reconcile ?? false)
-      this.setStatus({ online: true, authExpired: false })
+      this.markSynced()
       this.finishLoading(true)
     } catch (err) {
       this.handleError(err)
@@ -450,13 +457,13 @@ export class NoteSync {
         }
         await this.removeEntry(e.id, e)
       }
-      this.setStatus({ online: true, authExpired: false })
+      this.markSynced()
       return true
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409 && e.kind === 'put') {
           await this.resolveConflict(e, (err.body as { current?: EncryptedNote } | null)?.current)
-          this.setStatus({ online: true, authExpired: false })
+          this.markSynced()
           return true
         }
         if (err.status === 404 && e.kind === 'put') {
@@ -633,7 +640,7 @@ export class NoteSync {
           await this.store.putNotes(confirmed)
           result.created += res.created.length
           result.failed += res.skipped.length
-          this.setStatus({ online: true, authExpired: false })
+          this.markSynced()
           onProgress?.(result.created + result.queued + result.failed, prepared.length)
           continue
         } catch (err) {

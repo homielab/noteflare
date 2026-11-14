@@ -12,6 +12,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 - **Encrypted images** (optional): attach, paste or drop images into a note. They are encrypted on your device and stored in an R2 bucket. Off unless you add the `ATTACHMENTS` R2 binding in `wrangler.jsonc`.
 - **Code highlighting** in fenced code blocks, for 26 common languages.
 - **One-click update** for copies made by the Deploy button: add `.github/workflows/update.yml` to your copy once, then use **Run workflow**. Your `wrangler.jsonc` settings are kept.
+- **Sync status**: the header says when your notes were last synced ("Synced 2 min ago"), and clicking it syncs now. The account menu shows the same line, for phones.
 - **Empty trash** button in the trash, to delete everything there at once.
 - Archive and Trash stay visible beside the label filters, however many labels there are.
 - Long labels no longer break a card's layout; they are shortened, with the full text on hover.

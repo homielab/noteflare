@@ -121,10 +121,14 @@ describe('offline-first sync', () => {
     await b.start()
     expect([...b.getSnapshot().notes.values()].map((n) => n.title)).toEqual(['Written on the train'])
     expect(b.getSnapshot().status.pending).toBe(1)
+    // Nothing has reached the server yet, so there is no "last synced" time to show.
+    expect(b.getSnapshot().status.lastSyncedAt).toBeNull()
 
     server.mode = 'up'
+    const before = Date.now()
     await b.sync({ reconcile: true })
     expect(b.getSnapshot().status).toMatchObject({ online: true, pending: 0 })
+    expect(b.getSnapshot().status.lastSyncedAt).toBeGreaterThanOrEqual(before)
     expect(await titleOf(server.rows.get(note.id)!)).toBe('Written on the train')
     expect(b.getSnapshot().notes.get(note.id)!.version).toBe(1)
   })

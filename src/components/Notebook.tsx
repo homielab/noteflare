@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Archive, Check, Coffee, Download, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, Trash2, X } from 'lucide-react'
+import { Archive, Check, Coffee, Download, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, RefreshCw, Rows3, Search, StickyNote, Sun, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -19,7 +19,7 @@ import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
 import { BackupDialog } from './BackupDialog'
 import { AttachmentsContext, attachmentIds, clearAttachments, deleteAttachments } from '@/lib/attachments'
-import { SaveIndicator } from './SaveIndicator'
+import { SaveIndicator, useSyncLabel } from './SaveIndicator'
 import { AboutDialog, type AboutTab } from './AboutDialog'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import { InstallHelpDialog } from './InstallHelpDialog'
@@ -209,6 +209,13 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     flush()
     if (status.pending && !window.confirm(t('nb.signOutUnsynced', { n: status.pending }))) return
     await signOut()
+  }
+
+  const syncLabel = useSyncLabel(status)
+  /** Push what is waiting and ask the server for changes from other devices. */
+  const syncNow = () => {
+    flush()
+    void store.sync({ reconcile: true })
   }
 
   // Navigating home re-runs the Cloudflare Access login; queued changes wait safely in the device cache.
@@ -411,7 +418,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           </label>
 
           <div className="flex items-center gap-0.5">
-            <SaveIndicator status={status} onSignIn={signInAgain} />
+            <SaveIndicator status={status} onSignIn={signInAgain} onSync={syncNow} />
             <Tooltip label={layout === 'grid' ? t('nb.layoutList') : t('nb.layoutGrid')}>
               <Button
                 variant="ghost"
@@ -459,6 +466,10 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+                {/* The sync state in words: on a phone the header only has room for its icon. */}
+                <DropdownMenuItem onSelect={syncNow} className="text-xs text-muted-foreground">
+                  <RefreshCw /> <span className="truncate">{syncLabel}</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => importer.current?.pickFolder()}>
                   <FolderUp /> {t('nb.importFolder')}
