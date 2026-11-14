@@ -218,13 +218,13 @@ bun run deploy   # build → deploy the Worker (creates D1) → apply migrations
 Cloudflare Access is the login page in front of your notes. It is free for up to 50 people.
 
 1. In the [Cloudflare dashboard](https://dash.cloudflare.com), open **Zero Trust**. The first time, it asks you to pick a team name and the Free plan. Remember the team name.
-2. Go to **Access → Applications → Add an application → Self-hosted**.
+2. Go to **Access controls → Applications → Create new application → Self-hosted and private**.
    - Name: `NoteFlare`
-   - Domain: your NoteFlare link, e.g. `noteflare.<your-subdomain>.workers.dev` (or your custom domain)
+   - Select **Add public hostname** and enter your NoteFlare address, e.g. `notes.example.com` or `noteflare.<your-subdomain>.workers.dev`
 
    For a `workers.dev` link you can also turn Access on in **Workers & Pages → noteflare → Settings → Domains & Routes**.
 3. Add a policy: *Allow* → *Emails* → your email address. Save the application. Login by emailed one-time code works right away; Google or GitHub login also work.
-4. Open the application again and copy its **Application Audience (AUD) Tag** (a long string of letters and numbers).
+4. Copy the **Application Audience (AUD) Tag**: in **Access controls → Applications**, select **Edit** on NoteFlare, open **Additional settings**, and copy the value (a long string of letters and numbers).
 5. Put both values into `wrangler.jsonc`. If you used the one-click button, open your new `noteflare` repository on GitHub, open `wrangler.jsonc`, click the pencil icon, and edit these lines:
 
    ```jsonc

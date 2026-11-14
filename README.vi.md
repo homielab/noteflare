@@ -206,13 +206,13 @@ bun run deploy   # build → deploy Worker (tự tạo D1) → chạy migration
 Cloudflare Access là trang đăng nhập đứng trước ghi chú của bạn. Miễn phí tới 50 người.
 
 1. Trong [Cloudflare dashboard](https://dash.cloudflare.com), mở **Zero Trust**. Lần đầu, nó yêu cầu bạn đặt tên team và chọn gói Free. Nhớ tên team này.
-2. Vào **Access → Applications → Add an application → Self-hosted**.
+2. Vào **Access controls → Applications → Create new application → Self-hosted and private**.
    - Name: `NoteFlare`
-   - Domain: link NoteFlare của bạn, ví dụ `noteflare.<subdomain>.workers.dev` (hoặc custom domain)
+   - Chọn **Add public hostname** và nhập địa chỉ NoteFlare của bạn, ví dụ `notes.example.com` hoặc `noteflare.<subdomain>.workers.dev`
 
    Với link `workers.dev`, bạn cũng có thể bật Access trong **Workers & Pages → noteflare → Settings → Domains & Routes**.
 3. Thêm policy: *Allow* → *Emails* → email của bạn. Lưu application. Đăng nhập bằng mã OTP qua email dùng được ngay; đăng nhập Google/GitHub cũng được.
-4. Mở lại application và chép **Application Audience (AUD) Tag** (một chuỗi dài gồm chữ và số).
+4. Chép **Application Audience (AUD) Tag**: trong **Access controls → Applications**, chọn **Edit** ở NoteFlare, mở **Additional settings** và chép giá trị đó (một chuỗi dài gồm chữ và số).
 5. Điền cả hai giá trị vào `wrangler.jsonc`. Nếu bạn dùng nút một cú nhấp, mở repository `noteflare` mới trên GitHub, mở `wrangler.jsonc`, nhấn biểu tượng bút chì và sửa các dòng sau:
 
    ```jsonc
