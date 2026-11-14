@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Check, Coffee, Download, FileUp, FolderUp, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, X } from 'lucide-react'
+import { Check, Coffee, Download, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -17,6 +17,7 @@ import { neighbourId, reorderPosition } from '@/lib/reorder'
 import { NoteEditor } from './NoteEditor'
 import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
+import { BackupDialog } from './BackupDialog'
 import { SaveIndicator } from './SaveIndicator'
 import { AboutDialog, type AboutTab } from './AboutDialog'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -56,6 +57,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const [focusId, setFocusId] = useState<string | null>(null)
   const [pwOpen, setPwOpen] = useState(false)
   const [intOpen, setIntOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [aboutTab, setAboutTab] = useState<AboutTab>('updates')
   const [keysOpen, setKeysOpen] = useState(false)
@@ -440,6 +442,9 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                     <Download /> {t('nb.install')}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onSelect={() => (flush(), setBackupOpen(true))}>
+                  <HardDriveDownload /> {t('nb.backup')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="flex items-center gap-2">
                   <Languages className="size-3.5" /> {t('nb.language')}
@@ -567,7 +572,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
 
       <ImportDropzone
         ref={importer}
-        enabled={!editing && !pwOpen && !intOpen && !aboutOpen && !keysOpen}
+        enabled={!editing && !pwOpen && !intOpen && !backupOpen && !aboutOpen && !keysOpen}
         onImport={importMany}
         onDone={() => {
           setQuery('')
@@ -586,6 +591,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       />
       <ChangePassphraseDialog open={pwOpen} onOpenChange={setPwOpen} />
       <IntegrationsDialog open={intOpen} onOpenChange={setIntOpen} />
+      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} dek={dek} notes={store.notes} onImport={(found) => importMany(found)} />
       <AboutDialog
         open={aboutOpen}
         onOpenChange={setAboutOpen}

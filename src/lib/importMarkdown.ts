@@ -157,7 +157,19 @@ function parseFrontmatter(src: string): Record<string, string | string[]> {
   return out
 }
 
-const unquote = (s: string) => s.trim().replace(/^(['"])(.*)\1$/, '$2')
+/** Strip surrounding quotes; a double-quoted value may use JSON escapes (what the exporters write). */
+function unquote(s: string): string {
+  const v = s.trim()
+  if (/^".*"$/.test(v)) {
+    try {
+      const parsed: unknown = JSON.parse(v)
+      if (typeof parsed === 'string') return parsed
+    } catch {
+      /* not JSON: fall through and just drop the quotes */
+    }
+  }
+  return v.replace(/^(['"])(.*)\1$/, '$2')
+}
 const isTrue = (v: unknown) => typeof v === 'string' && /^(true|yes|1)$/i.test(v)
 
 /** Duplicate key: same title + body counts as already imported. */
