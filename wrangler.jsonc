@@ -5,6 +5,11 @@
   "compatibility_date": "2026-10-30",
   "compatibility_flags": ["nodejs_compat"],
 
+  // Served at noteflare.<your-subdomain>.workers.dev. Per-version preview URLs are off:
+  // they are extra hostnames your Access application would not cover.
+  "workers_dev": true,
+  "preview_urls": false,
+
   // The React SPA builds into ./dist; the Worker runs first only for /api/*
   "assets": {
     "directory": "./dist",
