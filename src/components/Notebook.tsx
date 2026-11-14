@@ -302,6 +302,20 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     [moveTo],
   )
 
+  /** Delete everything in the trash forever, after asking. Images only those notes used go too. */
+  const emptyTrash = async () => {
+    const trashed = store.notes.filter((n) => n.trashedAt)
+    if (!trashed.length) return
+    if (!window.confirm(trashed.length === 1 ? t('nb.emptyTrashConfirmOne') : t('nb.emptyTrashConfirm', { n: trashed.length }))) return
+    const gone = new Set(trashed.map((n) => n.id))
+    const mine = [...new Set(trashed.flatMap((n) => attachmentIds(n.body)))]
+    const used = new Set(store.notes.filter((n) => !gone.has(n.id)).flatMap((n) => attachmentIds(n.body)))
+    setEditing((e) => (e && gone.has(e.id) ? null : e))
+    for (const n of trashed) await destroy(n.id)
+    deleteAttachments(mine.filter((a) => !used.has(a)))
+    toast(t('nb.trashEmptied'))
+  }
+
   useEffect(() => {
     if (!focusId) return
     const timer = window.setTimeout(() => setFocusId(null), 700)
@@ -541,7 +555,14 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       </header>
 
       <main className="mx-auto max-w-[84rem] px-3 pt-6 pb-32 sm:px-6">
-        {view.kind === 'trash' && visible.length > 0 && <p className="mb-6 text-sm text-muted-foreground">{t('nb.trashNotice')}</p>}
+        {view.kind === 'trash' && visible.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-sm text-muted-foreground">{t('nb.trashNotice')}</p>
+            <Button variant="outline" size="sm" onClick={() => void emptyTrash()}>
+              <Trash2 /> {t('nb.emptyTrashButton')}
+            </Button>
+          </div>
+        )}
         {appliedQuery.trim() && visible.length > 0 && (
           <p key={visible.length} role="status" className="mb-5 px-1 text-sm text-muted-foreground animate-in fade-in-0 duration-200">
             {visible.length === 1 ? t('nb.resultOne') : t('nb.results', { n: visible.length })}
