@@ -257,23 +257,28 @@ NoteFlare báo cho bạn khi có phiên bản mới: một chấm nhỏ hiện t
 
 Việc kiểm tra chạy trên Worker của bạn, không phải trong trình duyệt. Worker hỏi GitHub bản phát hành mới nhất của `homielab/noteflare` tối đa 6 tiếng một lần và không gửi bất cứ thông tin gì về bạn hay ghi chú. Đặt `UPDATE_CHECK_REPO` trong `wrangler.jsonc` thành `owner/repo` của bản fork để theo dõi bản phát hành của riêng bạn, hoặc `"off"` để tắt.
 
-**Triển khai bằng nút Deploy?** Cloudflare đã tạo một bản sao repo trong tài khoản GitHub của bạn và tự deploy mỗi lần push. Kéo bản mới về:
+**Triển khai bằng nút Deploy?** Cloudflare đã tạo một bản sao repo trong tài khoản GitHub của bạn và tự deploy mỗi lần push. Cập nhật chỉ cần một cú nhấp, sau một lần cài đặt.
+
+*Một lần: thêm nút cập nhật.* Nút Deploy không chép file này vào bản sao của bạn, nên bạn tự thêm:
+
+1. Mở [`update.yml`](https://github.com/homielab/noteflare/blob/main/.github/workflows/update.yml) và chép nội dung (biểu tượng copy ở góc trên bên phải của file).
+2. Trong repository `noteflare` **của bạn** trên GitHub, chọn **Add file → Create new file**.
+3. Đặt tên `.github/workflows/update.yml`, dán vào rồi nhấn **Commit changes**.
+
+*Mỗi lần: cập nhật.*
+
+1. Trong repository của bạn, mở tab **Actions** và chọn **Update NoteFlare**.
+2. Nhấn **Run workflow**, rồi **Run workflow** lần nữa.
+3. Cloudflare deploy phiên bản mới sau vài phút.
+
+Bản cập nhật giữ nguyên cài đặt trong `wrangler.jsonc` của bạn (database id, giá trị Cloudflare Access). Nếu bạn đã tự sửa code, thay đổi của bạn được giữ ở những chỗ không trùng với phiên bản mới; chỗ nào trùng thì phiên bản mới thắng.
+
+Thích dùng terminal? Trong bản clone của bản sao:
 
 ```bash
-# Chỉ lần đầu: bản sao của bạn có lịch sử riêng, nên cần nối hai bên lại.
-git clone https://github.com/<ban>/noteflare && cd noteflare
-git remote add upstream https://github.com/homielab/noteflare
-git pull upstream main --no-rebase --allow-unrelated-histories -X theirs --no-commit
-git checkout HEAD -- wrangler.jsonc      # giữ cài đặt của bạn (database id, giá trị Access)
-git commit -m "Update NoteFlare"
-git push                                 # Workers Builds sẽ deploy
-
-# Những lần sau:
-git pull upstream main --no-rebase
-git push
+curl -fsSL https://raw.githubusercontent.com/homielab/noteflare/main/scripts/update-from-upstream.sh | bash
+git push                                                         # Workers Builds sẽ deploy
 ```
-
-Nếu lần pull sau báo xung đột ở `wrangler.jsonc`, giữ bản của bạn bằng `git checkout --ours wrangler.jsonc`, rồi `git commit` và `git push`. Ghi chú phát hành sẽ nói khi `wrangler.jsonc` có thêm thứ bạn có thể muốn chép sang.
 
 **Triển khai bằng dòng lệnh?**
 

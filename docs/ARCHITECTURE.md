@@ -29,7 +29,7 @@ flowchart LR
 | `worker/openapi.ts` | OpenAPI 3.1 description served at `/api/v1/openapi.json` |
 | `worker/updates.ts` | Checks GitHub for a newer release (cached, can be turned off) |
 | `shared/release.ts` | Version comparison and changelog parsing, shared by the Worker, the app and the release scripts |
-| `scripts/` | `release.mjs` cuts a version; `release-notes.mjs` prints one version's notes |
+| `scripts/` | `release.mjs` cuts a version; `release-notes.mjs` prints one version's notes; `update-from-upstream.sh` updates a deployed copy, keeping its settings |
 | `migrations/` | D1 schema, applied in order by Wrangler |
 | `packages/client/` | `@noteflare/client`: wire types, crypto, three-way merge and the SDK. The web app imports the same code |
 | `packages/cli/` | `noteflare` command-line tool built on the SDK |

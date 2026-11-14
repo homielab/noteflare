@@ -1,0 +1,34 @@
+name: Update NoteFlare
+
+# For copies made by the "Deploy to Cloudflare" button. That button leaves workflow files
+# out of the copy, so add this file to your copy once (README, "Update"). After that, press
+# "Run workflow" on this workflow's page to get the newest NoteFlare; Cloudflare deploys it.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+
+jobs:
+  update:
+    # The original repository has nothing to update from.
+    if: github.repository != 'homielab/noteflare'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Take the newest NoteFlare, keeping this copy's settings
+        env:
+          # This workflow's token is not allowed to change workflow files, so they stay as they are.
+          KEEP_WORKFLOWS: '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          curl -fsSL https://raw.githubusercontent.com/homielab/noteflare/main/scripts/update-from-upstream.sh -o "$RUNNER_TEMP/update.sh"
+          bash "$RUNNER_TEMP/update.sh"
+          git push

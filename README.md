@@ -271,23 +271,28 @@ NoteFlare tells you when a new version is out: a badge appears on your avatar, a
 
 The check runs on your Worker, not in your browser. It asks GitHub for the latest release of `homielab/noteflare` at most every 6 hours and sends nothing about you or your notes. Set `UPDATE_CHECK_REPO` in `wrangler.jsonc` to your fork's `owner/repo` to follow your own releases, or to `"off"` to turn it off.
 
-**Deployed with the button?** Cloudflare created a copy of this repo in your GitHub account and redeploys on every push. Pull the new release into it:
+**Deployed with the button?** Cloudflare created a copy of this repo in your GitHub account and redeploys on every push. Updating takes one click, after a one-time setup.
+
+*Once: add the update button.* The Deploy button leaves this file out of your copy, so add it yourself:
+
+1. Open [`update.yml`](https://github.com/homielab/noteflare/blob/main/.github/workflows/update.yml) and copy its contents (the copy icon at the top right of the file).
+2. In **your** `noteflare` repository on GitHub, choose **Add file → Create new file**.
+3. Name it `.github/workflows/update.yml`, paste, and click **Commit changes**.
+
+*Each time: update.*
+
+1. In your repository, open the **Actions** tab and select **Update NoteFlare**.
+2. Click **Run workflow**, then **Run workflow** again.
+3. Cloudflare deploys the new version in a few minutes.
+
+The update keeps the settings in your `wrangler.jsonc` (database id, Cloudflare Access values). If you changed the code yourself, your changes are kept where they don't overlap with the new version; where they do, the new version wins.
+
+Prefer a terminal? In a clone of your copy:
 
 ```bash
-# The first time only: your copy has its own history, so link the two.
-git clone https://github.com/<you>/noteflare && cd noteflare
-git remote add upstream https://github.com/homielab/noteflare
-git pull upstream main --no-rebase --allow-unrelated-histories -X theirs --no-commit
-git checkout HEAD -- wrangler.jsonc      # keep your own settings (database id, Access values)
-git commit -m "Update NoteFlare"
-git push                                 # Workers Builds deploys it
-
-# Every time after that:
-git pull upstream main --no-rebase
-git push
+curl -fsSL https://raw.githubusercontent.com/homielab/noteflare/main/scripts/update-from-upstream.sh | bash
+git push                                                         # Workers Builds deploys it
 ```
-
-If a later pull reports a conflict in `wrangler.jsonc`, keep yours with `git checkout --ours wrangler.jsonc`, then `git commit` and `git push`. The release notes say when `wrangler.jsonc` itself gained something you may want to copy over.
 
 **Deployed from the command line?**
 

@@ -11,6 +11,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 - **Import from Google Keep**: drop the Keep folder of a Google Takeout export. Text, checklists, labels, colors, pinned and archived are kept.
 - **Encrypted images** (optional): attach, paste or drop images into a note. They are encrypted on your device and stored in an R2 bucket. Off unless you add the `ATTACHMENTS` R2 binding in `wrangler.jsonc`.
 - **Code highlighting** in fenced code blocks, for 26 common languages.
+- **One-click update** for copies made by the Deploy button: add `.github/workflows/update.yml` to your copy once, then use **Run workflow**. Your `wrangler.jsonc` settings are kept.
 - The lock screen shows your email masked, e.g. `m••••••h@example.com`.
 - Titles containing quotes now survive an export followed by an import.
 - A deployment with no Cloudflare Access in front of it now says so and links to the setup guide, instead of "Your session has expired".
