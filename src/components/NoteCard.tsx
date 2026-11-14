@@ -117,7 +117,7 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
       }
       onDragEnd={reorder && (() => reorder.onDragEnd())}
       className={cn(
-        'paper group relative cursor-default overflow-hidden rounded-2xl border outline-none',
+        'paper group relative cursor-pointer overflow-hidden rounded-2xl border outline-none',
         'transition-[box-shadow,opacity,translate,scale] duration-200 ease-[var(--ease-out)]',
         'hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgb(0_0_0/0.06),0_14px_28px_-14px_rgb(0_0_0/0.3)] active:scale-[0.985] focus-visible:ring-[3px] focus-visible:ring-ring/50',
         note.color === 'default' ? 'border-border' : 'border-transparent',
@@ -151,7 +151,7 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
         {note.labels.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-1.5">
             {note.labels.map((l) => (
-              <li key={l} className="rounded-full bg-foreground/[0.07] px-2 py-0.5 text-xs">
+              <li key={l} title={l} className="max-w-full truncate rounded-full bg-foreground/[0.07] px-2 py-0.5 text-xs">
                 {l}
               </li>
             ))}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Check, Coffee, Download, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, X } from 'lucide-react'
+import { Archive, Check, Coffee, Download, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -71,7 +71,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const updates = useUpdates()
   const [revealing, setRevealing] = useState(() => !prefersReducedMotion())
   const searchRef = useRef<HTMLInputElement>(null)
-  const navRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLDivElement>(null)
   /** The two lists as displayed, for drag-and-drop reordering. */
   const sectionsRef = useRef<{ pinned: Note[]; others: Note[] }>({ pinned: [], others: [] })
 
@@ -357,7 +357,19 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-md" style={{ viewTransitionName: 'site-header' }}>
         <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-3 px-3 sm:px-6">
-          <a href="/" className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label="NoteFlare">
+          <a
+            href="/"
+            className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            aria-label="NoteFlare"
+            onClick={(e) => {
+              // Home, without reloading: a reload would drop the key and lock the notebook.
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+              e.preventDefault()
+              setQuery('')
+              go({ kind: 'notes' })
+              window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+            }}
+          >
             <img src="/favicon.svg" alt="" className="size-8" />
             <span className="text-lg font-semibold tracking-tight max-sm:hidden">NoteFlare</span>
           </a>
@@ -501,29 +513,29 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           </div>
         </div>
 
-        <nav
-          ref={navRef}
-          aria-label={t('nb.filters')}
-          className="mx-auto max-w-[84rem] overflow-x-auto px-3 pb-3 [scrollbar-width:none] sm:px-6"
-          style={{
-            maskImage: `linear-gradient(to right, ${edges.start ? 'transparent, black 2.5rem' : 'black, black'}, ${edges.end ? 'black calc(100% - 2.5rem), transparent' : 'black, black'})`,
-          }}
-        >
+        {/* Notes and labels scroll sideways; Archive and Trash stay put, so they are always in reach. */}
+        <nav aria-label={t('nb.filters')} className="mx-auto flex max-w-[84rem] items-start gap-2 px-3 pb-3 sm:px-6">
+          <div
+            ref={navRef}
+            className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]"
+            style={{
+              maskImage: `linear-gradient(to right, ${edges.start ? 'transparent, black 2.5rem' : 'black, black'}, ${edges.end ? 'black calc(100% - 2.5rem), transparent' : 'black, black'})`,
+            }}
+          >
           <ul className="flex w-max gap-2">
             <Chip active={view.kind === 'notes'} onClick={() => go({ kind: 'notes' })} count={counts.notes}>
               {t('nb.notes')}
             </Chip>
             {labels.map((l) => (
-              <Chip key={l} active={view.kind === 'label' && view.label === l} onClick={() => go({ kind: 'label', label: l })}>
-                #{l}
+              <Chip key={l} active={view.kind === 'label' && view.label === l} onClick={() => go({ kind: 'label', label: l })} title={l}>
+                <span className="block max-w-[14rem] truncate">#{l}</span>
               </Chip>
             ))}
-            <Chip active={view.kind === 'archive'} onClick={() => go({ kind: 'archive' })} count={counts.archive}>
-              {t('nb.archive')}
-            </Chip>
-            <Chip active={view.kind === 'trash'} onClick={() => go({ kind: 'trash' })} count={counts.trash}>
-              {t('nb.trash')}
-            </Chip>
+          </ul>
+          </div>
+          <ul className="flex shrink-0 gap-1 sm:gap-2">
+            <Chip active={view.kind === 'archive'} onClick={() => go({ kind: 'archive' })} count={counts.archive} icon={<Archive />} label={t('nb.archive')} />
+            <Chip active={view.kind === 'trash'} onClick={() => go({ kind: 'trash' })} count={counts.trash} icon={<Trash2 />} label={t('nb.trash')} />
           </ul>
         </nav>
       </header>
@@ -619,21 +631,35 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   )
 }
 
-function Chip({ active, onClick, count, children }: { active: boolean; onClick: () => void; count?: number; children: ReactNode }) {
+interface ChipProps {
+  active: boolean
+  onClick: () => void
+  count?: number
+  title?: string
+  children?: ReactNode
+  /** With an icon, the label is hidden on narrow screens (it stays the accessible name). */
+  icon?: ReactNode
+  label?: string
+}
+
+function Chip({ active, onClick, count, title, children, icon, label }: ChipProps) {
   return (
     <li>
       <button
         type="button"
         onClick={onClick}
+        title={title ?? label}
+        aria-label={label}
         aria-current={active ? 'page' : undefined}
         style={active ? { viewTransitionName: 'chip-active' } : undefined}
         className={cn(
-          'relative flex h-9 items-center gap-2 rounded-full px-4 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:h-10',
+          'relative flex h-9 items-center gap-2 rounded-full px-4 text-sm outline-none max-sm:px-3 focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:h-10',
           active ? 'font-medium text-primary-foreground' : 'text-foreground/75 hover:bg-accent hover:text-foreground',
         )}
       >
         {active && <span aria-hidden className="absolute inset-0 rounded-full bg-primary" />}
-        <span className="relative">{children}</span>
+        {icon && <span className="relative [&_svg]:size-4">{icon}</span>}
+        <span className={cn('relative', icon && 'max-sm:hidden')}>{children ?? label}</span>
         {!!count && <span className={cn('relative text-xs tabular-nums', active ? 'opacity-75' : 'text-muted-foreground')}>{count}</span>}
       </button>
     </li>

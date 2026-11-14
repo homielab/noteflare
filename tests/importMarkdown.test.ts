@@ -55,4 +55,10 @@ describe('isMarkdownPath', () => {
 
 it('dedupeKey ignores surrounding whitespace', () => {
   expect(dedupeKey({ title: ' A ', body: 'b\n' })).toBe(dedupeKey({ title: 'A', body: 'b' }))
+  it('shortens a long folder label to whole folder names', () => {
+    const n = parseMarkdown('Vault/workshops/VibecodeKit/VibecodeKit/skills/general-purpose/a.md', 'x')
+    expect(n.labels).toEqual(['VibecodeKit/skills/general-purpose'])
+    const deep = parseMarkdown(`Vault/${'x'.repeat(60)}/a.md`, 'x')
+    expect(deep.labels).toEqual(['x'.repeat(40)])
+  })
 })

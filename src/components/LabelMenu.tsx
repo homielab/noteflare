@@ -58,8 +58,10 @@ export function LabelMenu({ value, allLabels, onChange }: Props) {
         <div className="max-h-[min(14rem,calc(var(--vvh,100dvh)-10rem))] overflow-y-auto overscroll-contain">
           {options.map((l) => (
             <DropdownMenuItem key={l} onSelect={(e) => (e.preventDefault(), toggle(l))}>
-              <span className="grid size-4 place-items-center">{value.includes(l) && <Check />}</span>
-              {l}
+              <span className="grid size-4 shrink-0 place-items-center">{value.includes(l) && <Check />}</span>
+              <span className="truncate" title={l}>
+                {l}
+              </span>
             </DropdownMenuItem>
           ))}
           {canCreate && (

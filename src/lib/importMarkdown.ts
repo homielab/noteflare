@@ -115,7 +115,7 @@ export function parseMarkdown(path: string, raw: string, modifiedAt = Date.now()
   }
   // Drop the root (the dropped folder) and the file name; what is in between becomes a label.
   const folder = segments.slice(1, -1).join('/')
-  if (folder) labels.add(folder.slice(-MAX_LABEL))
+  if (folder) labels.add(folderLabel(folder))
 
   return {
     title: title.slice(0, 300),
@@ -127,6 +127,15 @@ export function parseMarkdown(path: string, raw: string, modifiedAt = Date.now()
     modifiedAt,
     sourcePath: path,
   }
+}
+
+/** A folder path as a label. When it is too long, keep whole folder names from the end instead of cutting one in half. */
+function folderLabel(folder: string): string {
+  if (folder.length <= MAX_LABEL) return folder
+  const parts = folder.split('/')
+  let label = parts[parts.length - 1].slice(0, MAX_LABEL)
+  for (let i = parts.length - 2; i >= 0 && `${parts[i]}/${label}`.length <= MAX_LABEL; i--) label = `${parts[i]}/${label}`
+  return label
 }
 
 /** Minimal YAML: `key: value`, `key: [a, b]` and `- item` lists. */

@@ -256,10 +256,10 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
         {draft.labels.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 px-5 pb-2">
             {draft.labels.map((l) => (
-              <li key={l}>
+              <li key={l} className="max-w-full">
                 <button
                   type="button"
-                  className="rounded-full bg-foreground/[0.07] px-2 py-0.5 text-xs hover:line-through"
+                  className="block max-w-full truncate rounded-full bg-foreground/[0.07] px-2 py-0.5 text-xs hover:line-through"
                   title={t('ed.removeLabel', { l })}
                   onClick={() => change({ labels: draft.labels.filter((x) => x !== l) })}
                 >

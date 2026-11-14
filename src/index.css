@@ -114,6 +114,29 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'ss01';
   }
+  /* Anything you can click shows the pointer (Tailwind 4 no longer does this for buttons). */
+  button:not(:disabled),
+  a[href],
+  summary,
+  select,
+  label[for],
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  input[type='file'],
+  [role='button'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='tab'],
+  [role='option'],
+  [role='switch'] {
+    cursor: pointer;
+  }
+  :disabled,
+  [aria-disabled='true'],
+  [data-disabled] {
+    cursor: not-allowed;
+  }
   :focus-visible {
     outline-color: var(--ring);
   }
