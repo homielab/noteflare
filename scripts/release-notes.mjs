@@ -17,7 +17,7 @@ const release = parseChangelog(readFileSync('CHANGELOG.md', 'utf8')).find((r) =>
 if (!release?.body) fail(`CHANGELOG.md has no notes for ${version}.`)
 
 process.stdout.write(
-  `${release.body}\n\n---\n\n**Update your deployment:** pull this release and run \`bun run deploy\`. ` +
+  `${release.body}\n\n---\n\n**Update your deployment:** if you used the Deploy button, open **Actions → Update NoteFlare → Run workflow** in your copy; from the command line, pull this release and run \`bun run deploy\`. ` +
     `See [Update](https://github.com/homielab/noteflare#-update) in the README.\n`,
 )
 
