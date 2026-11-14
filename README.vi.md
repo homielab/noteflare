@@ -28,7 +28,7 @@ App ghi chú đơn giản, riêng tư, không cần máy chủ — mã hoá đ�
 
 - 🔐 **Mã hoá đầu-cuối**: Argon2id + AES-256-GCM ngay trong trình duyệt. Máy chủ chỉ lưu ciphertext.
 - 💸 **Chạy miễn phí hoàn toàn**: một Worker, một database D1, Cloudflare Access — tất cả trên gói Free.
-- 🎨 **Tuỳ biến theo ý bạn**: React, Tailwind, shadcn/ui thuần; API khoảng 300 dòng; một file migration SQL.
+- 🎨 **Tuỳ biến theo ý bạn**: React, Tailwind, shadcn/ui thuần; một API Hono nhỏ và các file migration SQL thuần.
 - 📝 **Ghi chú markdown**: tiêu đề, bảng, trích dẫn, code có tô màu cú pháp, checklist `- [ ]` tick ngay trên thẻ.
 - 📌 **Sắp xếp theo cách của bạn**: ghim, kéo ghi chú theo thứ tự bạn muốn, 8 màu giấy, nhãn, lưu trữ, thùng rác tự dọn sau 30 ngày.
 - 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được) hoặc bản xuất Google Keep, mọi ghi chú được mã hoá khi nhập.
