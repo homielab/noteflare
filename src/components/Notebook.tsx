@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Check, Coffee, Download, FileUp, FolderUp, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, Sun, X } from 'lucide-react'
+import { Check, Coffee, Download, FileUp, FolderUp, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, Rows3, Search, StickyNote, Sun, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -378,6 +378,14 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importer.current?.pickFiles()}>
                   <FileUp /> {t('nb.importFiles')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    toast(t('imp.keepHint'))
+                    importer.current?.pickFolder()
+                  }}
+                >
+                  <StickyNote /> {t('nb.importKeep')}
                 </DropdownMenuItem>
                 {(canInstall || needsIosHelp) && (
                   <DropdownMenuItem onSelect={() => (canInstall ? void install() : setIosHelpOpen(true))}>

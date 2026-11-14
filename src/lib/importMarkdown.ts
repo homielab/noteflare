@@ -24,12 +24,16 @@ const SKIP_DIR = /^(\.git|\.obsidian|\.trash|\.github|node_modules|__MACOSX)$/i
 export const MAX_IMPORT_CHARS = 350_000 // fits the API's 512 KB ciphertext limit
 const MAX_LABEL = 40
 
-export const isMarkdownPath = (path: string) =>
-  MD_EXT.test(path) && !path.split('/').some((seg) => SKIP_DIR.test(seg) || seg.startsWith('._'))
+const inSkippedDir = (path: string) => path.split('/').some((seg) => SKIP_DIR.test(seg) || seg.startsWith('._'))
+
+export const isMarkdownPath = (path: string) => MD_EXT.test(path) && !inSkippedDir(path)
+/** Google Keep (Takeout) writes one .json file per note; see importKeep.ts. */
+export const isKeepPath = (path: string) => /\.json$/i.test(path) && !inSkippedDir(path)
+export const isImportablePath = (path: string) => isMarkdownPath(path) || isKeepPath(path)
 
 // ------------------------------------------------------------- collecting files
 
-/** Every Markdown file from a drop (folders are walked recursively). */
+/** Every importable file from a drop (folders are walked recursively). */
 export async function filesFromDrop(dt: DataTransfer): Promise<SourceFile[]> {
   const entries = Array.from(dt.items)
     .filter((i) => i.kind === 'file')
@@ -39,24 +43,24 @@ export async function filesFromDrop(dt: DataTransfer): Promise<SourceFile[]> {
   if (!entries.length) {
     return Array.from(dt.files)
       .map((file) => ({ path: file.name, file }))
-      .filter((f) => isMarkdownPath(f.path))
+      .filter((f) => isImportablePath(f.path))
   }
   const out: SourceFile[] = []
   for (const entry of entries) await walk(entry, out)
-  return out.filter((f) => isMarkdownPath(f.path))
+  return out.filter((f) => isImportablePath(f.path))
 }
 
 /** From <input type="file" webkitdirectory> or a multi-file picker. */
 export function filesFromInput(list: FileList): SourceFile[] {
   return Array.from(list)
     .map((file) => ({ path: file.webkitRelativePath || file.name, file }))
-    .filter((f) => isMarkdownPath(f.path))
+    .filter((f) => isImportablePath(f.path))
 }
 
 async function walk(entry: FileSystemEntry, out: SourceFile[]): Promise<void> {
   const path = entry.fullPath.replace(/^\/+/, '')
   if (entry.isFile) {
-    if (!isMarkdownPath(path)) return
+    if (!isImportablePath(path)) return
     const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej))
     out.push({ path, file })
     return
