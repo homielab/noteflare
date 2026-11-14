@@ -149,7 +149,7 @@ never sent automatically by browsers, so this is safe).
 |---|---|---|---|
 | GET | `/health` | none | `{ "ok": true, "api": "v1", "version": "0.1.0" }` |
 | GET | `/openapi.json` | none | OpenAPI 3.1 description |
-| GET | `/me` | read | `{ email, hasVault, auth, scope }` |
+| GET | `/me` | read | `{ email, hasVault, auth, scope, attachments }` |
 | GET | `/version` | read | `{ version, checkEnabled, latest, updateAvailable, checkedAt }`: this server's version and the newest release (`?refresh=1` skips the 6-hour cache) |
 | GET | `/vault` | read | KDF parameters and wrapped data key (needed to unlock) |
 | GET | `/notes?since=<ms>` | read | Notes with `updatedAt > since`, oldest first; `since=0` returns all |
@@ -158,6 +158,9 @@ never sent automatically by browsers, so this is safe).
 | PUT | `/notes/{id}` | write | Create (`baseVersion: 0`) or update (`baseVersion: <current>`) |
 | POST | `/notes/batch` | write | Create up to 40 notes in one transaction: `{ "notes": [{ id, …NoteWrite }] }` |
 | DELETE | `/notes/{id}` | write | Delete forever; the note must already be in the trash |
+| GET | `/blobs/{id}` | read | An encrypted image attachment (binary) |
+| PUT | `/blobs/{id}` | write | Store an encrypted attachment: raw bytes, `Content-Type: application/octet-stream`, at most 10 MB before encryption |
+| DELETE | `/blobs/{id}` | write | Delete an attachment |
 
 A note as stored on the server:
 
@@ -178,6 +181,20 @@ A note as stored on the server:
 
 To write, send the same fields except `id`, `version`, `createdAt` and
 `updatedAt`, plus `baseVersion`. Generate the id yourself (UUID v4).
+
+## Attachments
+
+Deployments with an R2 bucket bound as `ATTACHMENTS` can store encrypted images; `/me` reports this as `attachments: true`, and the blob routes answer `501 attachments_disabled` otherwise.
+
+A note refers to an image as ordinary Markdown, `![alt](/api/blobs/<id>)`. The blob is `iv (12 bytes) || AES-256-GCM ciphertext` under the data key with AAD `blob:<id>`. The plaintext is one byte with the length of the MIME type, the MIME type, then the image bytes, so the server never learns the file type. Clients accept `image/png`, `image/jpeg`, `image/gif`, `image/webp` and `image/avif` only.
+
+```ts
+const { markdown } = await nf.uploadAttachment(bytes, 'image/png', 'diagram')
+await nf.create({ title: 'With a picture', body: markdown })
+const { bytes: image, type } = await nf.getAttachment(id)
+```
+
+The server does not track which note uses which blob. Delete a blob yourself when you delete the last note that refers to it.
 
 ## Syncing
 

@@ -29,9 +29,11 @@ App ghi chú đơn giản, riêng tư, không cần máy chủ — mã hoá đ�
 - 🔐 **Mã hoá đầu-cuối**: Argon2id + AES-256-GCM ngay trong trình duyệt. Máy chủ chỉ lưu ciphertext.
 - 💸 **Chạy miễn phí hoàn toàn**: một Worker, một database D1, Cloudflare Access — tất cả trên gói Free.
 - 🎨 **Tuỳ biến theo ý bạn**: React, Tailwind, shadcn/ui thuần; API khoảng 300 dòng; một file migration SQL.
-- 📝 **Ghi chú markdown**: tiêu đề, code, bảng, trích dẫn, checklist `- [ ]` tick ngay trên thẻ.
-- 📌 **Sắp xếp theo cách của bạn**: ghim, 8 màu giấy, nhãn, lưu trữ, thùng rác tự dọn sau 30 ngày.
-- 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được), mọi file `.md` thành ghi chú đã mã hoá.
+- 📝 **Ghi chú markdown**: tiêu đề, bảng, trích dẫn, code có tô màu cú pháp, checklist `- [ ]` tick ngay trên thẻ.
+- 📌 **Sắp xếp theo cách của bạn**: ghim, kéo ghi chú theo thứ tự bạn muốn, 8 màu giấy, nhãn, lưu trữ, thùng rác tự dọn sau 30 ngày.
+- 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được) hoặc bản xuất Google Keep, mọi ghi chú được mã hoá khi nhập.
+- 📤 **Xuất và sao lưu**: tải ghi chú về dạng Markdown, hoặc một bản sao lưu đã mã hoá để khôi phục sau này.
+- 🖼️ **Ảnh mã hoá** (tuỳ chọn): đính kèm ảnh được mã hoá trước khi tải lên, lưu trong bucket R2 của riêng bạn.
 - ✨ **Mở khoá là giải mã tại chỗ**: từng ghi chú hiện ra từ ciphertext ngay khi bạn mở khoá.
 - 📱 **Cài như app, dùng được khi offline**: thêm NoteFlare vào màn hình chính. Đọc, viết, mở khoá không cần mạng; có mạng lại thì tự đồng bộ.
 - 🔀 **Đồng bộ nhiều thiết bị thông minh**: hai máy cùng sửa một ghi chú thì được gộp theo từng dòng, giống `git merge`. Chỉ khi sửa cùng một dòng khác nhau mới tách thành bản riêng.
@@ -79,6 +81,27 @@ File được đọc và mã hoá ngay trong trình duyệt rồi tải lên the
 - **Nhãn**: `tags` trong frontmatter (kiểu Obsidian) cộng với thư mục con chứa file
 - **Đọc thêm**: `color`, `pinned`, `archived`
 - **Bỏ qua**: `.obsidian`, `.git`, `node_modules`, file không phải Markdown và ghi chú đã có (cùng tiêu đề và nội dung) — nhập hai lần vẫn an toàn
+
+**Từ Google Keep**: xuất Keep bằng [Google Takeout](https://takeout.google.com/), giải nén rồi thả thư mục `Keep` vào (hoặc chọn **Tài khoản → Nhập từ Google Keep…**). Tiêu đề, nội dung, checklist, nhãn, màu, ghim và lưu trữ được giữ lại; ghi chú trong thùng rác của Keep và tệp đính kèm (ảnh, âm thanh) thì không.
+
+## 📤 Xuất và sao lưu
+
+**Tài khoản → Xuất và sao lưu…** có ba việc:
+
+- **Markdown (.zip)**: mỗi ghi chú là một file `.md` đọc được, có frontmatter, kèm ảnh đính kèm. Nhập lại vào NoteFlare được, hoặc mở bằng bất kỳ trình soạn Markdown nào. File này **không được mã hoá**, hãy cất ở nơi an toàn.
+- **Bản sao lưu đã mã hoá**: một file `.json` chứa ghi chú đúng như máy chủ lưu, vẫn ở dạng mã hoá. Không có passphrase thì vô dụng. Không bao gồm thùng rác và ảnh đính kèm.
+- **Khôi phục**: chọn một bản sao lưu đã mã hoá, ghi chú trong đó được thêm vào sổ; ghi chú bạn đã có sẽ được bỏ qua. Bản sao lưu từ một bản triển khai khác, hoặc từ trước khi đặt lại bằng mã khôi phục, sẽ hỏi passphrase đang dùng vào lúc tạo nó.
+
+## 🖼️ Ảnh
+
+Ghi chú có thể kèm ảnh, được mã hoá như mọi thứ khác. Tính năng này mặc định tắt vì cần một bucket R2, và R2 yêu cầu phương thức thanh toán dù có 10 GB miễn phí.
+
+Để bật, bỏ dấu chú thích ở dòng `r2_buckets` trong `wrangler.jsonc` rồi deploy; bucket được tạo tự động. Khi đó nút **Thêm ảnh** hiện trong trình soạn, và bạn cũng có thể dán hoặc thả ảnh vào ghi chú.
+
+- Ảnh được mã hoá trong trình duyệt bằng khoá dữ liệu của bạn trước khi tải lên. Máy chủ chỉ lưu khối dữ liệu không đọc được, không biết nội dung hay loại file.
+- PNG, JPEG, GIF, WebP và AVIF, mỗi ảnh tối đa 10 MB.
+- Xoá vĩnh viễn một ghi chú cũng xoá những ảnh chỉ ghi chú đó dùng. Ghi chú bị dọn khỏi thùng rác sau 30 ngày thì ảnh vẫn nằm lại trong bucket.
+- Lần đầu mỗi thiết bị hiển thị một ảnh cần có mạng.
 
 ## 📱 Cài lên điện thoại, dùng khi offline
 
@@ -271,6 +294,7 @@ Service worker chỉ có trong bản build production. Muốn thử chế độ 
 | Workers | 100.000 request/ngày | Mỗi lần lưu là 1 request, có debounce khoảng 0,7 giây |
 | D1 | 5 triệu row đọc, 100.000 row ghi/ngày; 500 MB/database | Mỗi lần làm mới chỉ tải note đã thay đổi |
 | Access | 50 người dùng | Mỗi người bạn cho vào chiếm một chỗ |
+| R2 (tuỳ chọn) | 10 GB lưu trữ | Chỉ khi bạn bật [ảnh](#️-ảnh); mỗi ảnh là một object |
 
 ## 🎨 Tuỳ biến
 
@@ -280,6 +304,7 @@ Service worker chỉ có trong bản build production. Muốn thử chế độ 
 | Sửa chữ trên giao diện hoặc thêm ngôn ngữ | `src/i18n/en.ts` (danh sách khoá), thêm ví dụ `fr.ts` rồi đăng ký trong `src/i18n/index.tsx` |
 | Chỉnh độ nặng mã hoá | `DEFAULT_KDF` trong `packages/client/src/crypto.ts` |
 | Đổi thời gian tự khoá, tự lưu | `IDLE_LOCK_MS` trong `src/lib/vault.tsx`, `DEBOUNCE_MS` trong `src/lib/sync/engine.ts` |
+| Tô màu thêm ngôn ngữ trong khối code | `src/lib/highlight.ts` |
 | Đổi cách gộp thay đổi giữa hai thiết bị | `packages/client/src/merge.ts` (test ở `tests/merge.test.ts`) |
 | Đổi icon hoặc tên khi cài | `public/icons/`, `public/manifest.webmanifest` |
 | Đổi thời gian giữ thùng rác | `TRASH_TTL_MS` trong `worker/index.ts`, `triggers.crons` trong `wrangler.jsonc` |
@@ -297,10 +322,10 @@ Service worker chỉ có trong bản build production. Muốn thử chế độ 
 - [x] Tự động gộp 3 chiều giữa các thiết bị
 - [x] API công khai, token truy cập, SDK TypeScript và CLI
 - [x] Xuất ra Markdown (CLI)
-- [ ] Xuất từ web app / bản sao lưu đã mã hoá
-- [ ] Kéo thả sắp xếp
-- [ ] Đính kèm ảnh mã hoá trên R2
-- [ ] Nhập từ Google Keep Takeout
+- [x] Xuất từ web app, sao lưu đã mã hoá và khôi phục
+- [x] Kéo thả sắp xếp
+- [x] Đính kèm ảnh mã hoá trên R2
+- [x] Nhập từ Google Keep Takeout
 
 ## 🙋 Hỏi đáp
 

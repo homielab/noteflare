@@ -6,7 +6,18 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ### Notes
 
+- **Reorder notes** by dragging a card onto another, or with Alt+arrow keys on a focused card. Dropping onto a pinned note pins.
+- **Export and backup** in the account menu: download your notes as Markdown (.zip), download an encrypted backup, and restore one.
+- **Import from Google Keep**: drop the Keep folder of a Google Takeout export. Text, checklists, labels, colors, pinned and archived are kept.
+- **Encrypted images** (optional): attach, paste or drop images into a note. They are encrypted on your device and stored in an R2 bucket. Off unless you add the `ATTACHMENTS` R2 binding in `wrangler.jsonc`.
+- **Code highlighting** in fenced code blocks, for 26 common languages.
+- The lock screen shows your email masked, e.g. `m••••••h@example.com`.
+- Titles containing quotes now survive an export followed by an import.
 - A deployment with no Cloudflare Access in front of it now says so and links to the setup guide, instead of "Your session has expired".
+
+### API
+
+- `GET`, `PUT` and `DELETE /api/v1/blobs/{id}` for encrypted attachments, `attachments` in `/me`, and `uploadAttachment`, `getAttachment`, `deleteAttachment` in the SDK.
 
 ## [0.1.0] - 2026-11-17
 

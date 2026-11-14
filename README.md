@@ -31,9 +31,11 @@ A simple, private, serverless notes app — end-to-end encrypted, completely fre
 - 🔐 **End-to-end encryption**: Argon2id + AES-256-GCM in your browser. The server only ever stores ciphertext.
 - 💸 **Completely free to run**: one Worker, one D1 database, Cloudflare Access — all on the free plan.
 - 🎨 **Yours to customize**: plain React, Tailwind and shadcn/ui, a small Hono API and plain SQL migrations.
-- 📝 **Markdown notes**: headings, code, tables, quotes and `- [ ]` checklists you can tick right on the card.
-- 📌 **Organize your way**: pin, 8 paper colors, labels, archive, and a trash that empties itself after 30 days.
-- 📥 **Drag-and-drop import**: drop a folder of Markdown (an Obsidian vault works) and every `.md` file becomes an encrypted note.
+- 📝 **Markdown notes**: headings, tables, quotes, syntax-highlighted code and `- [ ]` checklists you can tick right on the card.
+- 📌 **Organize your way**: pin, drag notes into the order you want, 8 paper colors, labels, archive, and a trash that empties itself after 30 days.
+- 📥 **Drag-and-drop import**: drop a folder of Markdown (an Obsidian vault works) or a Google Keep export, and every note arrives encrypted.
+- 📤 **Export and backup**: download your notes as Markdown, or as an encrypted backup you can restore later.
+- 🖼️ **Encrypted images** (optional): attach images that are encrypted before upload, stored in your own R2 bucket.
 - ✨ **Decrypt-in-place unlock**: watch every note resolve from ciphertext the moment you unlock.
 - 📱 **Install it, use it offline**: add NoteFlare to your home screen like an app. Read, write and unlock without a connection; changes sync when you're back.
 - 🔀 **Smart multi-device sync**: edits from two devices to the same note are merged line by line, like `git merge`. Only a true clash (same line, different text) becomes a separate copy.
@@ -81,6 +83,27 @@ Files are read and encrypted in your browser and uploaded in batches. Try it wit
 - **Labels**: `tags` from frontmatter (Obsidian style works) plus the sub-folder the file lives in
 - **Also read**: `color`, `pinned`, `archived`
 - **Skipped**: `.obsidian`, `.git`, `node_modules`, non-Markdown files, and notes you already have (same title and body) — importing twice is safe
+
+**From Google Keep**: export Keep with [Google Takeout](https://takeout.google.com/), unzip it, and drop the `Keep` folder (or use **Account → Import from Google Keep…**). Titles, text, checklists, labels, colors, pinned and archived come across; notes in Keep's trash and attachments (images, audio) do not.
+
+## 📤 Export and backup
+
+**Account → Export and backup…** gives you three things:
+
+- **Markdown (.zip)**: one readable `.md` file per note, with frontmatter, plus any attached images. It imports back into NoteFlare or opens in any Markdown editor. It is **not encrypted**, so keep it somewhere safe.
+- **Encrypted backup**: one `.json` file with your notes exactly as the server stores them, still encrypted. It is useless without your passphrase. The trash and attached images are left out.
+- **Restore**: pick an encrypted backup and its notes are added to your notebook; notes you already have are skipped. A backup from another deployment, or from before a recovery-code reset, asks for the passphrase that was in use when it was made.
+
+## 🖼️ Images
+
+Notes can carry images, encrypted like everything else. This is off by default because it needs an R2 bucket, and R2 asks for a payment method even on its free 10 GB.
+
+To turn it on, uncomment the `r2_buckets` line in `wrangler.jsonc` and deploy; the bucket is created for you. Then **Add image** appears in the editor, and you can also paste or drop an image into a note.
+
+- Images are encrypted in your browser with your data key before upload. The server stores opaque blobs and never learns the content or the file type.
+- PNG, JPEG, GIF, WebP and AVIF, up to 10 MB each.
+- Deleting a note forever also deletes the images only it used. Notes purged from the trash after 30 days leave their images in the bucket.
+- Images need a connection the first time each device shows them.
 
 ## 📱 Install on your phone, use it offline
 
@@ -147,6 +170,7 @@ Tokens reach only the encrypted copy: a client still needs your passphrase to re
 passphrase    ──Argon2id (64 MiB, t=3)──► KEK  ──AES-GCM wrap──► wrappedDek   ┐
 recovery code ──HKDF-SHA256─────────────► RKEK ──AES-GCM wrap──► recoveryDek  ├─ stored in D1
 random 256-bit DEK ──AES-GCM, AAD = "note:<id>"──► note ciphertext            ┘
+                   ──AES-GCM, AAD = "blob:<id>"──► image ciphertext (R2, optional)
 ```
 
 - Your passphrase, the data key (DEK) and note content never leave the browser unencrypted. Titles, bodies, labels and colors are all inside the ciphertext; only `pinned`, `archived`, `trashed_at`, `position` and timestamps are plaintext so notes can be sorted.
@@ -164,7 +188,8 @@ random 256-bit DEK ──AES-GCM, AAD = "note:<id>"──► note ciphertext    
 - **Auth**: [Cloudflare Access](https://www.cloudflare.com/zero-trust/products/access/), verified with [jose](https://github.com/panva/jose)
 - **API**: [Hono](https://hono.dev/)
 - **UI**: [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [lucide](https://lucide.dev/), View Transitions API
-- **Markdown**: [TanStack Markdown](https://github.com/TanStack/markdown)
+- **Markdown**: [TanStack Markdown](https://github.com/TanStack/markdown), with [TanStack Highlight](https://github.com/TanStack/highlight) for code
+- **Images** (optional): [Cloudflare R2](https://developers.cloudflare.com/r2/)
 - **Crypto**: WebCrypto + [hash-wasm](https://github.com/Daninet/hash-wasm) (Argon2id)
 - **Offline**: a Service Worker for the app shell, IndexedDB via [idb](https://github.com/jakearchibald/idb) for encrypted notes and the sync queue
 
@@ -286,6 +311,7 @@ The service worker only exists in production builds. To try offline mode locally
 | Workers | 100,000 requests/day | One request per save; saves are debounced (~0.7 s) |
 | D1 | 5M rows read, 100k rows written per day; 500 MB per database | Refreshes only fetch notes changed since the last sync |
 | Access | 50 users | One seat per person you let in |
+| R2 (optional) | 10 GB stored | Only if you turn on [images](#️-images); one object per image |
 
 Personal use stays far below these limits. If a D1 daily limit is ever hit, queries pause until 00:00 UTC — nothing is lost.
 
@@ -297,6 +323,7 @@ Personal use stays far below these limits. If a D1 daily limit is ever hit, quer
 | Edit UI text or add a language | `src/i18n/en.ts` (keys), add e.g. `fr.ts` and register it in `src/i18n/index.tsx` |
 | Tune encryption cost | `DEFAULT_KDF` in `packages/client/src/crypto.ts` |
 | Change auto-lock / autosave timing | `IDLE_LOCK_MS` in `src/lib/vault.tsx`, `DEBOUNCE_MS` in `src/lib/sync/engine.ts` |
+| Highlight more languages in code blocks | `src/lib/highlight.ts` |
 | Change how edits from two devices merge | `packages/client/src/merge.ts` (tested in `tests/merge.test.ts`) |
 | Change the app icon or install name | `public/icons/`, `public/manifest.webmanifest` |
 | Change trash retention | `TRASH_TTL_MS` in `worker/index.ts`, `triggers.crons` in `wrangler.jsonc` |
@@ -319,11 +346,11 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), and open an 
 - [x] Automatic three-way merge across devices
 - [x] Public API, access tokens, TypeScript SDK and CLI
 - [x] Export to Markdown (CLI)
-- [ ] Export from the web app / encrypted backup
-- [ ] Drag-and-drop reordering
-- [ ] Encrypted image attachments on R2
-- [ ] Google Keep Takeout import
-- [ ] Code highlighting via TanStack Highlight
+- [x] Export from the web app, encrypted backup and restore
+- [x] Drag-and-drop reordering
+- [x] Encrypted image attachments on R2
+- [x] Google Keep Takeout import
+- [x] Code highlighting via TanStack Highlight
 
 ## 🙋 FAQ
 

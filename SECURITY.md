@@ -44,6 +44,7 @@ NoteFlare is pre-1.0. Only the latest release on `main` gets security fixes, so 
 - **Offline guessing after a leak.** Anyone who gets the wrapped key and salt can try passphrases offline at Argon2id speed. That includes a leaked token (read or write), a copy of the database, or the offline copy on a lost device. A long passphrase makes this impractical; a short one doesn't. Treat tokens like a copy of your encrypted database.
 - **A malicious server rolling notes back or hiding them.** Encryption stops the server reading or forging content. It can still serve an older version of a note, withhold or delete notes, or change the unencrypted flags (pinned, archived, trashed), which could send a note to the trash to be purged. Keep exports (`noteflare export`) of anything you can't lose.
 - **Remote images in your own notes.** `![](https://…)` in a note loads that image when the note is shown, which tells the image's host your IP address. Images are fetched without a referrer, but avoid remote images in sensitive notes.
+- **Exports you download.** A Markdown export is plain text and decrypted images. The encrypted backup stays encrypted, but anyone holding it can try passphrases offline, like a copy of the database.
 - **Abuse by people you let in.** NoteFlare has no per-user quotas. Anyone your Access policy (and `ALLOWED_EMAILS`) admits can store notes until the D1 free tier runs out, so keep the policy narrow.
 
 ### What the server can and can't see
@@ -51,8 +52,8 @@ NoteFlare is pre-1.0. Only the latest release on `main` gets security fixes, so 
 | Visible to the server (and Cloudflare) | Encrypted, never visible |
 | --- | --- |
 | Your Cloudflare Access email | Note titles |
-| How many notes you have, their ids and ciphertext sizes | Note bodies |
-| Created/updated timestamps and version numbers | Labels |
+| How many notes and images you have, their ids and ciphertext sizes | Note bodies and attached images |
+| Created/updated timestamps and version numbers | Labels, and the file type of each image |
 | Pinned, archived and trashed flags, sort position | Colors |
 | Argon2id salt and parameters, wrapped (encrypted) keys | Your passphrase, recovery code and data key |
 | API token names, scopes, prefixes and last-used times (token values are stored only as SHA-256 hashes) | |
@@ -87,6 +88,7 @@ Tokens are accepted only on `/api/v1`, never as cookies, so they can't be used f
 - Recovery code (Crockford base32) → **HKDF-SHA256** → recovery key.
 - A random 256-bit data key, wrapped with **AES-256-GCM** under each of those keys.
 - Each note: **AES-256-GCM** with a random 96-bit IV and AAD `note:<id>`.
+- Each attached image: **AES-256-GCM** with a random 96-bit IV and AAD `blob:<id>`; the file type is inside the ciphertext.
 - In the browser the data key is a non-extractable `CryptoKey` held only in memory.
 - Random 96-bit IVs are safe for far more saves than a person makes (the limit is around 2³² encryptions per key).
 
