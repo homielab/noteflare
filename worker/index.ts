@@ -7,6 +7,7 @@ import { versionInfo, type UpdateEnv } from './updates'
 import {
   BATCH_MAX_BYTES,
   BATCH_MAX_NOTES,
+  MAX_ATTACHMENT_BYTES,
   MAX_TOKENS_PER_USER,
   type BatchNoteItem,
   type BatchResult,
@@ -22,6 +23,8 @@ import {
 interface Env extends AccessEnv, UpdateEnv {
   DB: D1Database
   ASSETS: Fetcher
+  /** Optional R2 bucket for encrypted image attachments. Without it the feature is off. */
+  ATTACHMENTS?: R2Bucket
 }
 
 type Vars = { user: string; scope: TokenScope; via: 'session' | 'token' }
@@ -30,6 +33,8 @@ type Ctx = Context<{ Bindings: Env; Variables: Vars }>
 const MAX_CIPHERTEXT = 512 * 1024 // ~384 KB plaintext / note
 const ID_RE = /^[0-9a-f-]{36}$/i
 const B64_RE = /^[A-Za-z0-9+/]*={0,2}$/
+/** Encryption adds an IV, an auth tag and the hidden file type to each attachment. */
+const MAX_BLOB_BYTES = MAX_ATTACHMENT_BYTES + 512
 const TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 /** Same bounds the clients enforce before deriving a key (see KDF_LIMITS in packages/client). */
@@ -75,7 +80,8 @@ api.use('*', async (c, next) => {
   }
 
   await next()
-  c.header('Cache-Control', 'no-store')
+  // Attachments are immutable ciphertext and set their own private caching.
+  if (!c.res.headers.has('Cache-Control')) c.header('Cache-Control', 'no-store')
 })
 
 function unauthorized(c: Ctx, error: string, message: string) {
@@ -106,7 +112,13 @@ api.get('/me', async (c) => {
   const row = await c.env.DB.prepare('SELECT 1 FROM vaults WHERE user_id = ?')
     .bind(c.get('user'))
     .first()
-  return c.json<MeResponse>({ email: c.get('user'), hasVault: !!row, auth: c.get('via'), scope: c.get('scope') })
+  return c.json<MeResponse>({
+    email: c.get('user'),
+    hasVault: !!row,
+    auth: c.get('via'),
+    scope: c.get('scope'),
+    attachments: !!c.env.ATTACHMENTS,
+  })
 })
 
 api.get('/vault', async (c) => {
@@ -285,6 +297,55 @@ api.delete('/notes/:id', needWrite, async (c) => {
 })
 
 // ---------- API tokens (web app only) ----------
+
+// ---------- Attachments ----------
+// Encrypted images in R2, one object per attachment under the owner's own prefix.
+// The server never sees what they are: the bytes and the file type are inside the ciphertext.
+
+const blobKey = (c: Ctx, id: string) => `${c.get('user')}/${id}`
+const noAttachments = (c: Ctx) =>
+  c.json({ error: 'attachments_disabled', message: 'This deployment has no storage for attachments. Add the ATTACHMENTS R2 binding.' }, 501)
+
+api.put('/blobs/:id', needWrite, async (c) => {
+  const bucket = c.env.ATTACHMENTS
+  if (!bucket) return noAttachments(c)
+  const id = c.req.param('id') ?? ''
+  if (!ID_RE.test(id)) return c.json({ error: 'invalid_id' }, 400)
+  const tooLarge = () => c.json({ error: 'too_large', message: `An attachment can be at most ${MAX_ATTACHMENT_BYTES} bytes.` }, 413)
+  if (Number(c.req.header('Content-Length') ?? 0) > MAX_BLOB_BYTES) return tooLarge()
+  const body = await c.req.arrayBuffer()
+  if (!body.byteLength) return c.json({ error: 'invalid_body', message: 'Send the encrypted attachment as the request body.' }, 400)
+  if (body.byteLength > MAX_BLOB_BYTES) return tooLarge()
+  await bucket.put(blobKey(c, id), body)
+  return c.json({ id, size: body.byteLength }, 201)
+})
+
+api.get('/blobs/:id', async (c) => {
+  const bucket = c.env.ATTACHMENTS
+  if (!bucket) return noAttachments(c)
+  const id = c.req.param('id') ?? ''
+  if (!ID_RE.test(id)) return c.json({ error: 'invalid_id' }, 400)
+  const object = await bucket.get(blobKey(c, id))
+  if (!object) return c.json({ error: 'not_found' }, 404)
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': String(object.size),
+      // Ciphertext for one id never changes, and only its owner can ask for it.
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  })
+})
+
+api.delete('/blobs/:id', needWrite, async (c) => {
+  const bucket = c.env.ATTACHMENTS
+  if (!bucket) return noAttachments(c)
+  const id = c.req.param('id') ?? ''
+  if (!ID_RE.test(id)) return c.json({ error: 'invalid_id' }, 400)
+  await bucket.delete(blobKey(c, id))
+  return c.body(null, 204)
+})
 
 api.get('/tokens', sessionOnly, async (c) => {
   const { results } = await c.env.DB.prepare(

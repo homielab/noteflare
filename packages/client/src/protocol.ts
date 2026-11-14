@@ -50,6 +50,8 @@ export interface MeResponse {
   auth: 'session' | 'token'
   /** What the caller may do: a session or write token can change notes; a read token can only read. */
   scope: TokenScope
+  /** True when this deployment has storage for encrypted image attachments (an R2 bucket). */
+  attachments: boolean
 }
 
 // ---------------------------------------------------------------- API tokens
@@ -97,3 +99,10 @@ export interface BatchResult {
 /** Per-request limits for batch import (D1 Free: at most 50 queries per Worker invocation). */
 export const BATCH_MAX_NOTES = 40
 export const BATCH_MAX_BYTES = 8 * 1024 * 1024
+
+// ---------------------------------------------------------------- attachments
+
+/** Largest image a note can carry, before encryption. */
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+/** Image types clients accept; anything else is refused on upload and never rendered. */
+export const ATTACHMENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif'] as const

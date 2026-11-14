@@ -39,12 +39,13 @@ export function openApiSpec(origin: string) {
         },
         Me: {
           type: 'object',
-          required: ['email', 'hasVault', 'auth', 'scope'],
+          required: ['email', 'hasVault', 'auth', 'scope', 'attachments'],
           properties: {
             email: { type: 'string' },
             hasVault: { type: 'boolean' },
             auth: { enum: ['session', 'token'] },
             scope: { enum: ['read', 'write'] },
+            attachments: { type: 'boolean', description: 'This deployment can store encrypted image attachments' },
           },
         },
         Vault: {
@@ -225,6 +226,33 @@ export function openApiSpec(origin: string) {
             }),
           },
           responses: { 200: { description: 'Created ids and skipped (already existing) ids' }, 403: error('Read-only token') },
+        },
+      },
+      '/blobs/{id}': {
+        get: {
+          summary: 'An encrypted image attachment: iv || AES-GCM ciphertext, AAD "blob:<id>"',
+          parameters: [id],
+          responses: {
+            200: { description: 'The encrypted attachment', content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } } },
+            404: error('No such attachment'),
+            501: error('This deployment has no attachment storage'),
+          },
+        },
+        put: {
+          summary: 'Store an encrypted attachment (at most 10 MB before encryption). Requires a write token.',
+          parameters: [id],
+          requestBody: { required: true, content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } } },
+          responses: {
+            201: { description: 'Stored' },
+            403: error('Read-only token'),
+            413: error('Larger than the limit'),
+            501: error('This deployment has no attachment storage'),
+          },
+        },
+        delete: {
+          summary: 'Delete an attachment. Requires a write token.',
+          parameters: [id],
+          responses: { 204: { description: 'Deleted' }, 403: error('Read-only token'), 501: error('This deployment has no attachment storage') },
         },
       },
     },

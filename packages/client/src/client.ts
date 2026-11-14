@@ -5,7 +5,9 @@
  * passphrase is what makes it readable.
  */
 import {
+  decryptBlob,
   decryptNote,
+  encryptBlob,
   encryptNote,
   NOTE_COLORS,
   unlockWithPassphrase,
@@ -14,7 +16,7 @@ import {
   type NotePayload,
 } from './crypto.js'
 import { mergeNotes, type MergeSide } from './merge.js'
-import type { EncryptedNote, MeResponse, PutNoteBody, VaultRecord } from './protocol.js'
+import { ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, type EncryptedNote, type MeResponse, type PutNoteBody, type VaultRecord } from './protocol.js'
 
 export interface ClientOptions {
   /** Your NoteFlare URL, e.g. "https://notes.example.com". */
@@ -251,6 +253,30 @@ export class NoteFlareClient {
     this.seen.delete(id)
   }
 
+  // ------------------------------------------------------------ attachments
+
+  /**
+   * Encrypt and upload an image. Returns its id and the Markdown that shows it in a note.
+   * Needs a deployment with attachment storage (`(await me()).attachments`).
+   */
+  async uploadAttachment(bytes: Uint8Array, type: string, alt = 'image'): Promise<{ id: string; markdown: string }> {
+    if (!(ATTACHMENT_TYPES as readonly string[]).includes(type)) throw new TypeError(`Unsupported image type "${type}"`)
+    if (bytes.length > MAX_ATTACHMENT_BYTES) throw new TypeError(`An attachment can be at most ${MAX_ATTACHMENT_BYTES} bytes`)
+    const id = crypto.randomUUID()
+    await this.requestRaw('PUT', `/blobs/${id}`, await encryptBlob(this.requireKey(), id, bytes, type))
+    return { id, markdown: `![${alt.replace(/[[\]\n\r]/g, ' ')}](/api/blobs/${id})` }
+  }
+
+  /** Download and decrypt an attachment a note refers to as `/api/blobs/<id>`. */
+  async getAttachment(id: string): Promise<{ bytes: Uint8Array; type: string }> {
+    const res = await this.requestRaw('GET', `/blobs/${id}`)
+    return decryptBlob(this.requireKey(), id, new Uint8Array(await res.arrayBuffer()))
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    await this.requestRaw('DELETE', `/blobs/${id}`)
+  }
+
   // ------------------------------------------------------------ internals
 
   private async setTrashed(id: string, trashedAt: number | null): Promise<Note> {
@@ -305,6 +331,29 @@ export class NoteFlareClient {
   private requireKey(): CryptoKey {
     if (!this.key) throw new NoteFlareError(0, 'locked', 'Call unlock(passphrase) before reading or writing notes')
     return this.key
+  }
+
+  /** Binary request, for attachments. */
+  private async requestRaw(method: string, path: string, body?: Uint8Array<ArrayBuffer>): Promise<Response> {
+    const res = await this.doFetch(this.base + path, {
+      method,
+      headers: {
+        Authorization: `Bearer ${this.opts.token}`,
+        ...(body ? { 'Content-Type': 'application/octet-stream' } : {}),
+        ...this.opts.headers,
+      },
+      body,
+      redirect: 'manual',
+    })
+    if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
+      throw new NoteFlareError(res.status, 'access_redirect', 'Cloudflare Access redirected the request to a login page. Allow /api/v1 for API clients (see docs/API.md).')
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      const e = (data ?? {}) as { error?: string; message?: string }
+      throw new NoteFlareError(res.status, e.error ?? 'http_error', e.message, data)
+    }
+    return res
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {

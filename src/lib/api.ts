@@ -41,6 +41,14 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+/** Binary requests (attachments). GETs may use the HTTP cache: the ciphertext for an id never changes. */
+async function raw(path: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(`/api${path}`, { credentials: 'same-origin', redirect: 'manual', ...init })
+  if (res.type === 'opaqueredirect') throw new ApiError(401, null)
+  if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null))
+  return res
+}
+
 export const api = {
   me: () => req<MeResponse>('/me'),
   version: (refresh = false) => req<VersionInfo>(refresh ? '/version?refresh=1' : '/version'),
@@ -57,4 +65,8 @@ export const api = {
   createToken: (body: CreateTokenBody) =>
     req<CreateTokenResponse>('/tokens', { method: 'POST', body: JSON.stringify(body) }),
   revokeToken: (id: string) => req<void>(`/tokens/${id}`, { method: 'DELETE' }),
+  putBlob: (id: string, data: Uint8Array<ArrayBuffer>) =>
+    raw(`/blobs/${id}`, { method: 'PUT', body: data, headers: { 'Content-Type': 'application/octet-stream' } }).then(() => undefined),
+  getBlob: (id: string) => raw(`/blobs/${id}`).then(async (res) => new Uint8Array(await res.arrayBuffer())),
+  deleteBlob: (id: string) => raw(`/blobs/${id}`, { method: 'DELETE' }).then(() => undefined),
 }

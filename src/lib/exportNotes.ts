@@ -10,6 +10,8 @@ import type { ParsedNote } from './importMarkdown'
 import type { Note } from './noteModel'
 import type { ZipEntry } from './zip'
 
+const ATTACHMENT_URL = /\/api\/blobs\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi
+
 // ---------------------------------------------------------------- Markdown
 
 /** Markdown with YAML frontmatter; the same format the CLI's `export` writes. */
@@ -37,8 +39,12 @@ const safeName = (s: string) =>
     .trim()
     .slice(0, 100) || 'note'
 
-/** One .md file per note that is not in the trash, with unique names. A label like "work/q4" becomes a folder. */
-export function markdownEntries(notes: Note[], root = 'NoteFlare'): ZipEntry[] {
+/**
+ * One .md file per note that is not in the trash, with unique names. A label like "work/q4"
+ * becomes a folder. `attachments` maps an attachment id to its file name in `<root>/attachments/`;
+ * links to those are rewritten to relative paths so the images show in any Markdown viewer.
+ */
+export function markdownEntries(notes: Note[], root = 'NoteFlare', attachments?: ReadonlyMap<string, string>): ZipEntry[] {
   const enc = new TextEncoder()
   const used = new Set<string>()
   return notes
@@ -49,7 +55,14 @@ export function markdownEntries(notes: Note[], root = 'NoteFlare'): ZipEntry[] {
       let name = base
       for (let i = 2; used.has(`${folder}/${name}`.toLowerCase()); i++) name = `${base} (${i})`
       used.add(`${folder}/${name}`.toLowerCase())
-      return { name: `${folder}/${name}.md`, data: enc.encode(toMarkdownFile(n)), modifiedAt: n.updatedAt }
+      const up = '../'.repeat(folder.split('/').length - 1)
+      const body = attachments
+        ? n.body.replace(ATTACHMENT_URL, (url, id: string) => {
+            const file = attachments.get(id.toLowerCase())
+            return file ? `${up}attachments/${file}` : url
+          })
+        : n.body
+      return { name: `${folder}/${name}.md`, data: enc.encode(toMarkdownFile({ ...n, body })), modifiedAt: n.updatedAt }
     })
 }
 

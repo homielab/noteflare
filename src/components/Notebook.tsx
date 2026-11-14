@@ -18,6 +18,7 @@ import { NoteEditor } from './NoteEditor'
 import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
 import { BackupDialog } from './BackupDialog'
+import { AttachmentsContext, attachmentIds, clearAttachments, deleteAttachments } from '@/lib/attachments'
 import { SaveIndicator } from './SaveIndicator'
 import { AboutDialog, type AboutTab } from './AboutDialog'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -45,7 +46,10 @@ function readLayout(): Layout {
 
 export function Notebook({ dek }: { dek: CryptoKey }) {
   const { t, lang, setLang } = useI18n()
-  const { email, lock, signOut } = useVault()
+  const { email, lock, signOut, attachments } = useVault()
+  const attachmentsState = useMemo(() => ({ dek, enabled: attachments }), [dek, attachments])
+  // Decrypted images live only while the notebook is unlocked.
+  useEffect(() => clearAttachments, [dek])
   const { canInstall, install, needsIosHelp } = useInstallPrompt()
   const [iosHelpOpen, setIosHelpOpen] = useState(false)
   const store = useNotes(dek)
@@ -243,10 +247,16 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     (id: string) => {
       transition(() => {
         setEditing((e) => (e?.id === id ? null : e))
-        void destroy(id).then(() => toast(t('nb.deletedForever')))
+        // Images that only this note used go with it.
+        const mine = attachmentIds(store.byId.get(id)?.body ?? '')
+        const used = new Set(store.notes.filter((n) => n.id !== id).flatMap((n) => attachmentIds(n.body)))
+        void destroy(id).then(() => {
+          toast(t('nb.deletedForever'))
+          deleteAttachments(mine.filter((a) => !used.has(a)))
+        })
       })
     },
-    [destroy, t],
+    [destroy, t, store.byId, store.notes],
   )
 
   // Drag-and-drop reordering. A drop onto a card in the other section also pins or unpins.
@@ -342,6 +352,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const isNewDraft = !!editing && editing.version === 0 && !store.byId.has(editing.id)
 
   return (
+    <AttachmentsContext.Provider value={attachmentsState}>
     <TooltipProvider delayDuration={400}>
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-md" style={{ viewTransitionName: 'site-header' }}>
@@ -604,6 +615,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       <InstallHelpDialog open={iosHelpOpen} onOpenChange={setIosHelpOpen} />
     </div>
     </TooltipProvider>
+    </AttachmentsContext.Provider>
   )
 }
 

@@ -3,6 +3,7 @@ import { Markdown, type MarkdownComponents } from '@tanstack/markdown/react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n'
 import { highlightCode } from '@/lib/highlight'
+import { AttachmentImage, attachmentIdOf } from '@/lib/attachments'
 
 interface Props {
   source: string
@@ -43,7 +44,9 @@ export const NoteMarkdown = memo(function NoteMarkdown({ source, onToggleTask, c
       )
     },
     img: (props: ComponentProps<'img'>) =>
-      images ? (
+      images && attachmentIdOf(props.src) ? (
+        <AttachmentImage id={attachmentIdOf(props.src)!} alt={props.alt} />
+      ) : images ? (
         <img {...props} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
       ) : props.alt ? (
         <span className="text-muted-foreground">[{props.alt}]</span>

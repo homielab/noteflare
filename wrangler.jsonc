@@ -27,6 +27,11 @@
     }
   ],
 
+  // Optional: encrypted image attachments. Uncomment to let notes carry images; the
+  // first deploy creates the bucket. R2 must be enabled on your Cloudflare account
+  // (free for the first 10 GB, but it asks for a payment method), which is why it is off by default.
+  // "r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "noteflare-attachments" }],
+
   "vars": {
     // e.g. https://your-team.cloudflareaccess.com
     "ACCESS_TEAM_DOMAIN": "",

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ListChecks } from 'lucide-react'
+import { ImagePlus, ListChecks } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Segmented } from '@/components/ui/segmented'
@@ -12,6 +13,7 @@ import { NoteMarkdown } from './NoteMarkdown'
 import { NoteActions, PinButton } from './NoteActions'
 import { LabelMenu } from './LabelMenu'
 import { colorVar } from './noteColors'
+import { AttachmentError, uploadImage, useAttachments } from '@/lib/attachments'
 
 interface Props {
   note: Note | null
@@ -30,6 +32,11 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
   const [draft, setDraft] = useState<Note | null>(note)
   const [preview, setPreview] = useState(false)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const imageInput = useRef<HTMLInputElement>(null)
+  const attachments = useAttachments()
+  // The newest draft, for work that finishes after an await (image uploads).
+  const draftRef = useRef<Note | null>(note)
+  draftRef.current = draft
 
   useEffect(() => {
     setDraft(note)
@@ -101,11 +108,40 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
   const morph = !!transitionName && supportsViewTransitions()
 
   const change = (patch: NotePatch, closeAfter = false) => {
-    const next = { ...draft, ...patch, updatedAt: Date.now() }
+    const next = { ...(draftRef.current ?? draft), ...patch, updatedAt: Date.now() }
+    draftRef.current = next
     setDraft(next)
     if (!isNew || !isEmptyNote(next)) onSave(next)
     if (closeAfter) onClose(next)
   }
+
+  const canAttach = !!attachments?.enabled && !draft.trashedAt
+
+  /** Encrypt and upload images, then put their Markdown at the cursor (or at the end, in reading mode). */
+  const addImages = async (files: File[]) => {
+    if (!attachments || !files.length) return
+    for (const file of files) {
+      const id = toast.loading(t('att.uploading'))
+      try {
+        const markdown = await uploadImage(attachments.dek, file)
+        const el = bodyRef.current
+        if (el) {
+          const at = el.selectionStart
+          const before = at > 0 && el.value[at - 1] !== '\n' ? '\n' : ''
+          const text = `${before}${markdown}\n`
+          applyTo(el, { from: at, to: el.selectionEnd, text, selStart: at + text.length, selEnd: at + text.length })
+        } else {
+          const body = draftRef.current?.body ?? ''
+          change({ body: body.trim() ? `${body.replace(/\s+$/, '')}\n\n${markdown}\n` : `${markdown}\n` })
+        }
+        toast.success(t('att.added'), { id })
+      } catch (err) {
+        const reason = err instanceof AttachmentError ? err.reason : null
+        toast.error(reason === 'size' ? t('att.tooLarge') : reason === 'type' ? t('att.badType') : t('att.failed'), { id })
+      }
+    }
+  }
+  const imagesOf = (list: FileList | null | undefined) => Array.from(list ?? []).filter((f) => f.type.startsWith('image/'))
 
   const edited = new Date(draft.updatedAt).toLocaleString(dateLocale(), {
     hour: '2-digit',
@@ -166,7 +202,18 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
 
         {status && <p className="-mt-1 px-5 text-xs text-muted-foreground sm:hidden">{status}</p>}
 
-        <div className="min-h-40 overflow-y-auto overscroll-contain px-5 py-2 max-sm:min-h-0 max-sm:flex-1 sm:max-h-[60vh]">
+        <div
+          className="min-h-40 overflow-y-auto overscroll-contain px-5 py-2 max-sm:min-h-0 max-sm:flex-1 sm:max-h-[60vh]"
+          onDragOver={(e) => {
+            if (canAttach && Array.from(e.dataTransfer.types).includes('Files')) e.preventDefault()
+          }}
+          onDrop={(e) => {
+            const images = imagesOf(e.dataTransfer.files)
+            if (!canAttach || !images.length) return
+            e.preventDefault()
+            void addImages(images)
+          }}
+        >
           {preview ? (
             <div
               key="preview"
@@ -189,6 +236,12 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
               key="edit"
               ref={bodyRef}
               onKeyDown={onBodyKey}
+              onPaste={(e) => {
+                const images = imagesOf(e.clipboardData.files)
+                if (!canAttach || !images.length) return
+                e.preventDefault()
+                void addImages(images)
+              }}
               aria-keyshortcuts="Control+Enter Meta+Enter Control+Shift+L Meta+Shift+L"
               autoFocus={isNew}
               value={draft.body}
@@ -230,6 +283,27 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
                 <ListChecks />
               </Button>
             </Tooltip>
+          )}
+          {canAttach && (
+            <>
+              <Tooltip label={t('ed.addImage')}>
+                <Button variant="ghost" size="icon-sm" aria-label={t('ed.addImage')} onClick={() => imageInput.current?.click()}>
+                  <ImagePlus />
+                </Button>
+              </Tooltip>
+              <input
+                ref={imageInput}
+                type="file"
+                hidden
+                multiple
+                accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+                onChange={(e) => {
+                  const images = imagesOf(e.target.files)
+                  e.target.value = ''
+                  void addImages(images)
+                }}
+              />
+            </>
           )}
           <Segmented
             className="ml-1 shrink-0 max-sm:ml-auto"

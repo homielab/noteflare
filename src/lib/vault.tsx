@@ -15,6 +15,8 @@ interface VaultState {
   email: string | null
   /** Started without reaching the server; running from the copy on this device. */
   offline: boolean
+  /** This deployment can store encrypted image attachments. Unknown (false) while offline. */
+  attachments: boolean
   dek: CryptoKey | null
   /** Create a vault and return the recovery code for the user to store. */
   setup(passphrase: string): Promise<string>
@@ -34,6 +36,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading')
   const [email, setEmail] = useState<string | null>(null)
   const [offline, setOffline] = useState(false)
+  const [attachments, setAttachments] = useState(false)
   const [dek, setDek] = useState<CryptoKey | null>(null)
   const record = useRef<VaultRecord | null>(null)
   const pendingDek = useRef<CryptoKey | null>(null)
@@ -47,6 +50,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         if (cached?.email && cached.email !== me.email) await localStore.clear()
         await localStore.setMeta({ email: me.email, hasVault: me.hasVault })
         setEmail(me.email)
+        setAttachments(!!me.attachments)
         if (!me.hasVault) return setStatus('setup')
         record.current = await api.getVault()
         await localStore.setVault(record.current)
@@ -164,7 +168,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   return (
     <VaultContext.Provider
-      value={{ status, email, offline, dek, setup, finishSetup, unlock, recover, changePassphrase, lock, signOut }}
+      value={{ status, email, offline, attachments, dek, setup, finishSetup, unlock, recover, changePassphrase, lock, signOut }}
     >
       {children}
     </VaultContext.Provider>

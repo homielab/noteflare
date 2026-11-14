@@ -7,12 +7,13 @@
  *   recovery code ──HKDF──► RKEK ─┘                  recoveryDek (in D1)
  *
  *   DEK (random AES-256-GCM) ──► encrypts each note, AAD = "note:<id>"
+ *                            ──► encrypts each attachment, AAD = "blob:<id>"
  */
 // hash-wasm (Argon2id) is loaded on first use, so it isn't part of an app's first download.
 let argon2: Promise<typeof import('hash-wasm')['argon2id']> | null = null
 /** Start loading the key-derivation code early, e.g. while the passphrase is being typed. */
 export const preloadKdf = () => (argon2 ??= import('hash-wasm').then((m) => m.argon2id))
-import type { KdfParams, VaultRecord } from './protocol.js'
+import { ATTACHMENT_TYPES, type KdfParams, type VaultRecord } from './protocol.js'
 
 const DEK_AAD = enc('noteflare:dek:v1')
 const IV_BYTES = 12
@@ -230,6 +231,43 @@ export function normalizeRecoveryCode(code: string): string {
     .replace(/[IL]/g, '1')
 }
 
+// ---------------------------------------------------------------- attachments
+
+/**
+ * Encrypt an image for upload. The result is `iv || AES-GCM(type-length || type || bytes)`
+ * with AAD "blob:<id>", so the server learns neither the content nor the file type and
+ * cannot hand back one attachment in place of another.
+ */
+export async function encryptBlob(dek: CryptoKey, id: string, bytes: Uint8Array, type: string): Promise<Uint8Array<ArrayBuffer>> {
+  const typeBytes = enc(type)
+  if (typeBytes.length > 255) throw new Error('Attachment type is too long')
+  const plain = new Uint8Array(1 + typeBytes.length + bytes.length)
+  plain[0] = typeBytes.length
+  plain.set(typeBytes, 1)
+  plain.set(bytes, 1 + typeBytes.length)
+  const iv = randomBytes(IV_BYTES)
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: enc(`blob:${id}`) }, dek, plain)
+  return concat(iv, new Uint8Array(ct))
+}
+
+/** Decrypt an attachment. The type is reported only if it is an image type clients accept. */
+export async function decryptBlob(dek: CryptoKey, id: string, data: Uint8Array): Promise<{ bytes: Uint8Array<ArrayBuffer>; type: string }> {
+  if (data.length <= IV_BYTES) throw new Error('Attachment is empty')
+  const pt = new Uint8Array(
+    await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: data.slice(0, IV_BYTES), additionalData: enc(`blob:${id}`) },
+      dek,
+      data.slice(IV_BYTES),
+    ),
+  )
+  const typeLength = pt[0] ?? 0
+  const type = new TextDecoder().decode(pt.subarray(1, 1 + typeLength))
+  return {
+    bytes: pt.slice(1 + typeLength),
+    type: (ATTACHMENT_TYPES as readonly string[]).includes(type) ? type : 'application/octet-stream',
+  }
+}
+
 function randomBytes(n: number) {
   return crypto.getRandomValues(new Uint8Array(n))
 }
@@ -238,7 +276,7 @@ function enc(s: string) {
   return new TextEncoder().encode(s)
 }
 
-function concat(a: Uint8Array, b: Uint8Array) {
+function concat(a: Uint8Array, b: Uint8Array): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(a.length + b.length)
   out.set(a)
   out.set(b, a.length)

@@ -20,7 +20,8 @@ import type { ParsedNote } from '@/lib/importMarkdown'
 import { localRow, toPayload } from '@/lib/noteModel'
 import type { ImportResult, Note } from '@/lib/notes'
 import { localStore } from '@/lib/sync/localStore'
-import { makeZip } from '@/lib/zip'
+import { makeZip, type ZipEntry } from '@/lib/zip'
+import { attachmentExtension, attachmentIds, loadAttachment } from '@/lib/attachments'
 import { useI18n } from '@/i18n'
 
 interface Props {
@@ -65,8 +66,21 @@ export function BackupDialog({ open, onOpenChange, dek, notes, onImport }: Props
   const exportMarkdown = () =>
     guard(async () => {
       if (!live.length) return void toast(t('bk.empty'))
-      downloadFile(`noteflare-${exportStamp()}.zip`, makeZip(markdownEntries(live)), 'application/zip')
-      toast.success(t('bk.exported', { n: live.length }))
+      // Attached images are decrypted into the archive next to the notes that use them.
+      const images: ZipEntry[] = []
+      const names = new Map<string, string>()
+      let missing = 0
+      for (const id of new Set(live.flatMap((n) => attachmentIds(n.body)))) {
+        try {
+          const image = await loadAttachment(dek, id)
+          names.set(id, `${id}.${attachmentExtension(image.type)}`)
+          images.push({ name: `NoteFlare/attachments/${names.get(id)}`, data: image.bytes })
+        } catch {
+          missing++
+        }
+      }
+      downloadFile(`noteflare-${exportStamp()}.zip`, makeZip([...markdownEntries(live, 'NoteFlare', names), ...images]), 'application/zip')
+      toast.success(t('bk.exported', { n: live.length }), { description: missing ? t('bk.imagesMissing', { n: missing }) : undefined })
     })
 
   const exportBackup = () =>
