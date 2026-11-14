@@ -274,10 +274,20 @@ The check runs on your Worker, not in your browser. It asks GitHub for the lates
 **Deployed with the button?** Cloudflare created a copy of this repo in your GitHub account and redeploys on every push. Pull the new release into it:
 
 ```bash
-git remote add upstream https://github.com/homielab/noteflare   # once
+# The first time only: your copy has its own history, so link the two.
+git clone https://github.com/<you>/noteflare && cd noteflare
+git remote add upstream https://github.com/homielab/noteflare
+git pull upstream main --no-rebase --allow-unrelated-histories -X theirs --no-commit
+git checkout HEAD -- wrangler.jsonc      # keep your own settings (database id, Access values)
+git commit -m "Update NoteFlare"
+git push                                 # Workers Builds deploys it
+
+# Every time after that:
 git pull upstream main --no-rebase
-git push                                                         # Workers Builds deploys it
+git push
 ```
+
+If a later pull reports a conflict in `wrangler.jsonc`, keep yours with `git checkout --ours wrangler.jsonc`, then `git commit` and `git push`. The release notes say when `wrangler.jsonc` itself gained something you may want to copy over.
 
 **Deployed from the command line?**
 

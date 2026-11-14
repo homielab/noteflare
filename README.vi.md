@@ -260,10 +260,20 @@ Việc kiểm tra chạy trên Worker của bạn, không phải trong trình du
 **Triển khai bằng nút Deploy?** Cloudflare đã tạo một bản sao repo trong tài khoản GitHub của bạn và tự deploy mỗi lần push. Kéo bản mới về:
 
 ```bash
-git remote add upstream https://github.com/homielab/noteflare   # chỉ cần một lần
+# Chỉ lần đầu: bản sao của bạn có lịch sử riêng, nên cần nối hai bên lại.
+git clone https://github.com/<ban>/noteflare && cd noteflare
+git remote add upstream https://github.com/homielab/noteflare
+git pull upstream main --no-rebase --allow-unrelated-histories -X theirs --no-commit
+git checkout HEAD -- wrangler.jsonc      # giữ cài đặt của bạn (database id, giá trị Access)
+git commit -m "Update NoteFlare"
+git push                                 # Workers Builds sẽ deploy
+
+# Những lần sau:
 git pull upstream main --no-rebase
-git push                                                         # Workers Builds sẽ deploy
+git push
 ```
+
+Nếu lần pull sau báo xung đột ở `wrangler.jsonc`, giữ bản của bạn bằng `git checkout --ours wrangler.jsonc`, rồi `git commit` và `git push`. Ghi chú phát hành sẽ nói khi `wrangler.jsonc` có thêm thứ bạn có thể muốn chép sang.
 
 **Triển khai bằng dòng lệnh?**
 
