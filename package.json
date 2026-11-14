@@ -22,6 +22,7 @@
     "self-hosted"
   ],
   "type": "module",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "dev": "vite",
     "dev:api": "wrangler dev --port 8787",
