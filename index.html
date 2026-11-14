@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="referrer" content="no-referrer" />
+    <!-- A private notes app: keep it out of search results -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="Keep your notes on Cloudflare. Keep them to yourself." />
+    <meta name="theme-color" content="#f7f6f4" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="NoteFlare" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- use-credentials: the manifest sits behind Cloudflare Access like everything else -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+    <title>NoteFlare</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 20vh auto; padding: 0 1.5rem; line-height: 1.5">
+        NoteFlare needs JavaScript: your notes are encrypted and decrypted in the browser, so nothing can be shown
+        without it. Turn JavaScript on for this site and reload.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

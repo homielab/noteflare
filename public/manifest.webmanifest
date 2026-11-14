@@ -1,0 +1,49 @@
+{
+  "id": "/",
+  "name": "NoteFlare",
+  "short_name": "NoteFlare",
+  "description": "Private notes that run free on your own Cloudflare account. Everything is encrypted on your device before it's saved, works offline, and syncs between your devices.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f6f4",
+  "theme_color": "#f7f6f4",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/wide-notes.jpg", "sizes": "1280x800", "type": "image/jpeg", "form_factor": "wide", "label": "Your notes, decrypted on your device" },
+    { "src": "/screenshots/wide-editor.jpg", "sizes": "1280x800", "type": "image/jpeg", "form_factor": "wide", "label": "Markdown notes with checklists and tables" },
+    { "src": "/screenshots/wide-dark.jpg", "sizes": "1280x800", "type": "image/jpeg", "form_factor": "wide", "label": "Dark theme" },
+    { "src": "/screenshots/narrow-notes.jpg", "sizes": "780x1688", "type": "image/jpeg", "form_factor": "narrow", "label": "NoteFlare on a phone" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New note",
+      "short_name": "New",
+      "description": "Start a new encrypted note",
+      "url": "/?new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": { "title": "share_title", "text": "share_text", "url": "share_url" }
+  },
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": { "text/markdown": [".md", ".markdown"] },
+      "launch_type": "single-client"
+    }
+  ],
+  "launch_handler": { "client_mode": "focus-existing" }
+}

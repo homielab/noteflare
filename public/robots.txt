@@ -1,0 +1,3 @@
+# NoteFlare is a private app: nothing here should be indexed.
+User-agent: *
+Disallow: /

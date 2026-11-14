@@ -1,0 +1,10 @@
+{
+  "name": "@noteflare/cli",
+  "version": "0.1.0",
+  "description": "Command-line client for NoteFlare (end-to-end encrypted notes on Cloudflare).",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "noteflare": "./bin/noteflare.mjs" },
+  "engines": { "node": ">=20" },
+  "private": true
+}

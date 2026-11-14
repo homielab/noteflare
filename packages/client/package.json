@@ -1,0 +1,23 @@
+{
+  "name": "@noteflare/client",
+  "version": "0.1.0",
+  "description": "Client SDK for NoteFlare: end-to-end encrypted notes on Cloudflare. Encrypts and decrypts on your side.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "engines": { "node": ">=20" },
+  "repository": { "type": "git", "url": "https://github.com/homielab/noteflare", "directory": "packages/client" },
+  "keywords": ["noteflare", "notes", "end-to-end-encryption", "cloudflare", "sdk"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "hash-wasm": "^4.12.0"
+  }
+}

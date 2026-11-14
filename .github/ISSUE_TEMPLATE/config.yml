@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/homielab/noteflare/security/advisories/new
+    about: Please report security issues privately.
+  - name: Questions and ideas
+    url: https://github.com/homielab/noteflare/discussions
+    about: Ask for help with setup, share what you built, or say you deployed it.

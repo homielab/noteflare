@@ -1,0 +1,90 @@
+{
+  "name": "noteflare",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Keep your notes on Cloudflare. Keep them to yourself. Google Keep–style notes with end-to-end encryption on Cloudflare Workers + D1.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/homielab/noteflare"
+  },
+  "homepage": "https://github.com/homielab/noteflare",
+  "keywords": [
+    "notes",
+    "google-keep",
+    "end-to-end-encryption",
+    "cloudflare-workers",
+    "cloudflare-d1",
+    "cloudflare-access",
+    "react",
+    "shadcn",
+    "markdown",
+    "self-hosted"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "wrangler dev --port 8787",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b && tsc -p packages/client/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "bun run build && wrangler deploy && bun run db:migrate:remote",
+    "cf-typegen": "wrangler types worker/worker-configuration.d.ts",
+    "build:client": "tsc -p packages/client/tsconfig.json",
+    "release": "node scripts/release.mjs",
+    "release:notes": "node scripts/release-notes.mjs"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "D1 database that stores encrypted notes. Created automatically."
+      },
+      "ACCESS_TEAM_DOMAIN": {
+        "description": "Your Zero Trust team domain, e.g. https://myteam.cloudflareaccess.com. Type todo for now; the app stays locked (401) until Access is configured."
+      },
+      "ALLOWED_EMAILS": {
+        "description": "Optional: only these emails (or @domain) may use NoteFlare, checked by the Worker on top of your Access policy. Comma-separated. Empty means whoever Access allows."
+      },
+      "UPDATE_CHECK_REPO": {
+        "description": "GitHub repository checked for new NoteFlare releases (owner/repo). Set it to your fork, or to off to disable the check."
+      },
+      "ACCESS_AUD": {
+        "description": "Application Audience (AUD) tag of the Cloudflare Access application protecting this Worker. Type todo for now and replace it once Access is set up."
+      }
+    }
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource/be-vietnam-pro": "^5.3.0",
+    "@tanstack/markdown": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "hash-wasm": "^4.13.0",
+    "hono": "^4.13.18",
+    "idb": "^8.0.4",
+    "jose": "^6.2.17",
+    "lucide-react": "^1.73.0",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261114.1",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "fake-indexeddb": "^6.2.8",
+    "tailwindcss": "^4.3.5",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.162.0"
+  }
+}

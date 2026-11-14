@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest an idea for NoteFlare
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Check the [roadmap](https://github.com/homielab/noteflare#-roadmap) and existing issues first. For big changes, let's agree on the approach here before anyone writes code.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you're trying to do, not just the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Does it affect encryption or what the server can see?
+      description: NoteFlare's server must never read note content. If the idea needs server-side processing of notes, say how it would work without that.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself

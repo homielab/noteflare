@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in NoteFlare doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Security problems go through [private reporting](https://github.com/homielab/noteflare/security/advisories/new), not here.**
+        Never paste note content, your passphrase, recovery code or API tokens.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a note on two devices
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NoteFlare version or commit
+      placeholder: v0.1.0 or a commit hash
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      multiple: true
+      options:
+        - Web app in a browser
+        - Installed app (PWA)
+        - Offline mode
+        - API, SDK or CLI
+        - Deploying or Cloudflare Access setup
+        - Local development
+  - type: input
+    id: env
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 131 on Android 15
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console errors or Worker logs
+      description: Browser console output or `wrangler tail` lines, with any personal data removed.
+      render: text
