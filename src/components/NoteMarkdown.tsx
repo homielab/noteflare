@@ -44,7 +44,7 @@ export const NoteMarkdown = memo(function NoteMarkdown({ source, onToggleTask, c
     },
     img: (props: ComponentProps<'img'>) =>
       images ? (
-        <img {...props} loading="lazy" referrerPolicy="no-referrer" />
+        <img {...props} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
       ) : props.alt ? (
         <span className="text-muted-foreground">[{props.alt}]</span>
       ) : null,

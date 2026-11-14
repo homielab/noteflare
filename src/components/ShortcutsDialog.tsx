@@ -10,6 +10,7 @@ const GROUPS: { title: MessageKey; rows: [string[], MessageKey][] }[] = [
     rows: [
       [['C'], 'kb.new'],
       [['/'], 'kb.search'],
+      [['Alt', '↑ ↓'], 'kb.move'],
       [['?'], 'kb.help'],
     ],
   },

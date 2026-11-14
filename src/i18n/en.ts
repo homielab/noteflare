@@ -270,6 +270,7 @@ export const en = {
   'kb.new': "New note",
   'kb.search': "Search",
   'kb.help': "Show this list",
+  'kb.move': 'Move the focused note earlier or later',
   'kb.close': "Save and close",
   'kb.esc': "Close the note or dialog",
   'kb.continue': "Next list item (on an empty item, end the list)",

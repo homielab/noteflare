@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from 'react'
 import { cn } from '@/lib/utils'
 import type { Note, NotePatch } from '@/lib/notes'
 import { toggleTask } from '@/lib/notes'
@@ -19,12 +19,31 @@ interface Props {
   onOpen: (id: string) => void
   onChange: (id: string, patch: NotePatch, immediate?: boolean) => void
   onDeleteForever: (id: string) => void
+  /** Drag-and-drop reordering; omitted where the order can't change (trash). */
+  reorder?: ReorderHandlers
+  /** This card is being dragged. */
+  dragging?: boolean
+  /** Another card is being dragged over this one. */
+  dropTarget?: boolean
 }
+
+export interface ReorderHandlers {
+  onDragStart: (id: string) => void
+  onDragOver: (id: string) => void
+  onDrop: (id: string) => void
+  onDragEnd: () => void
+  /** Keyboard: move one place earlier (-1) or later (1). */
+  onMove: (id: string, delta: -1 | 1) => void
+}
+
+/** Marks a drag as a note being reordered, so it is never mistaken for dropped files. */
+export const NOTE_DRAG_TYPE = 'application/x-noteflare-note'
+const isNoteDrag = (e: DragEvent<HTMLElement>) => Array.from(e.dataTransfer.types).includes(NOTE_DRAG_TYPE)
 
 const reveal =
   'opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'
 
-export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focused, onOpen, onChange, onDeleteForever }: Props) {
+export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focused, onOpen, onChange, onDeleteForever, reorder, dragging, dropTarget }: Props) {
   const { t } = useI18n()
   const change = (patch: NotePatch) => onChange(note.id, patch, true)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -57,17 +76,54 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
       aria-label={note.title || t('card.untitled')}
       onClick={() => onOpen(note.id)}
       onKeyDown={(e) => {
-        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onOpen(note.id)
+        } else if (reorder && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowLeft')) {
+          e.preventDefault()
+          reorder.onMove(note.id, -1)
+        } else if (reorder && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowRight')) {
+          e.preventDefault()
+          reorder.onMove(note.id, 1)
         }
       }}
+      aria-keyshortcuts={reorder ? 'Alt+ArrowUp Alt+ArrowDown' : undefined}
+      draggable={!!reorder}
+      onDragStart={
+        reorder &&
+        ((e) => {
+          e.dataTransfer.setData(NOTE_DRAG_TYPE, note.id)
+          e.dataTransfer.effectAllowed = 'move'
+          reorder.onDragStart(note.id)
+        })
+      }
+      onDragOver={
+        reorder &&
+        ((e) => {
+          if (!isNoteDrag(e)) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+          reorder.onDragOver(note.id)
+        })
+      }
+      onDrop={
+        reorder &&
+        ((e) => {
+          if (!isNoteDrag(e)) return
+          e.preventDefault()
+          reorder.onDrop(note.id)
+        })
+      }
+      onDragEnd={reorder && (() => reorder.onDragEnd())}
       className={cn(
         'paper group relative cursor-default overflow-hidden rounded-2xl border outline-none',
         'transition-[box-shadow,opacity,translate,scale] duration-200 ease-[var(--ease-out)]',
         'hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgb(0_0_0/0.06),0_14px_28px_-14px_rgb(0_0_0/0.3)] active:scale-[0.985] focus-visible:ring-[3px] focus-visible:ring-ring/50',
         note.color === 'default' ? 'border-border' : 'border-transparent',
         lifted && 'opacity-0',
+        dragging && 'opacity-40',
+        dropTarget && 'ring-[3px] ring-ring/60',
       )}
       style={style}
     >

@@ -272,6 +272,7 @@ export const vi: Record<MessageKey, string> = {
   'kb.new': "Ghi chú mới",
   'kb.search': "Tìm kiếm",
   'kb.help': "Hiện danh sách này",
+  'kb.move': 'Đưa ghi chú đang chọn lên trước hoặc ra sau',
   'kb.close': "Lưu và đóng",
   'kb.esc': "Đóng ghi chú hoặc hộp thoại",
   'kb.continue': "Mục tiếp theo (ở mục trống thì kết thúc danh sách)",

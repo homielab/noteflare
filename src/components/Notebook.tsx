@@ -12,7 +12,8 @@ import { prefersReducedMotion, transition, VT_CLASS, vtName } from '@/lib/motion
 import { LANGS, useI18n } from '@/i18n'
 import { useTheme } from '@/hooks/useTheme'
 import { useInstallPrompt } from '@/lib/pwa'
-import { NoteCard } from './NoteCard'
+import { NoteCard, type ReorderHandlers } from './NoteCard'
+import { neighbourId, reorderPosition } from '@/lib/reorder'
 import { NoteEditor } from './NoteEditor'
 import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
@@ -65,6 +66,8 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const [revealing, setRevealing] = useState(() => !prefersReducedMotion())
   const searchRef = useRef<HTMLInputElement>(null)
   const navRef = useRef<HTMLElement>(null)
+  /** The two lists as displayed, for drag-and-drop reordering. */
+  const sectionsRef = useRef<{ pinned: Note[]; others: Note[] }>({ pinned: [], others: [] })
 
   useEffect(() => {
     if (query === appliedQuery) return
@@ -150,6 +153,8 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const pinned = view.kind === 'trash' ? [] : visible.filter((n) => n.pinned)
   const others = view.kind === 'trash' ? visible : visible.filter((n) => !n.pinned)
   const ordered = [...pinned, ...others]
+  sectionsRef.current = { pinned, others }
+  const canReorder = view.kind !== 'trash'
   const revealIndex = (id: string) => {
     if (!revealing) return undefined
     const i = ordered.findIndex((n) => n.id === id)
@@ -240,6 +245,49 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       })
     },
     [destroy, t],
+  )
+
+  // Drag-and-drop reordering. A drop onto a card in the other section also pins or unpins.
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const dragRef = useRef<string | null>(null)
+  const moveTo = useCallback(
+    (id: string, targetId: string) => {
+      const { pinned, others } = sectionsRef.current
+      const toPinned = pinned.some((n) => n.id === targetId)
+      const position = reorderPosition(toPinned ? pinned : others, id, targetId)
+      if (position === null) return
+      const wasPinned = pinned.some((n) => n.id === id)
+      transition(() => update(id, wasPinned === toPinned ? { position } : { position, pinned: toPinned }, { immediate: true }))
+    },
+    [update],
+  )
+  const reorder = useMemo<ReorderHandlers>(
+    () => ({
+      onDragStart: (id) => {
+        dragRef.current = id
+        setDragId(id)
+      },
+      onDragOver: (id) => setOverId(id === dragRef.current ? null : id),
+      onDrop: (id) => {
+        const moved = dragRef.current
+        dragRef.current = null
+        setDragId(null)
+        setOverId(null)
+        if (moved) moveTo(moved, id)
+      },
+      onDragEnd: () => {
+        dragRef.current = null
+        setDragId(null)
+        setOverId(null)
+      },
+      onMove: (id, delta) => {
+        const { pinned, others } = sectionsRef.current
+        const target = neighbourId(pinned.some((n) => n.id === id) ? pinned : others, id, delta)
+        if (target) moveTo(id, target)
+      },
+    }),
+    [moveTo],
   )
 
   useEffect(() => {
@@ -481,14 +529,14 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
             {pinned.length > 0 && (
               <Section label={t('nb.pinned')} layout={layout}>
                 {pinned.map((n) => (
-                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} />
+                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} reorder={canReorder ? reorder : undefined} dragging={dragId === n.id} dropTarget={overId === n.id} />
                 ))}
               </Section>
             )}
             {others.length > 0 && (
               <Section label={pinned.length ? t('nb.others') : undefined} layout={layout}>
                 {others.map((n) => (
-                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} />
+                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} reorder={canReorder ? reorder : undefined} dragging={dragId === n.id} dropTarget={overId === n.id} />
                 ))}
               </Section>
             )}
