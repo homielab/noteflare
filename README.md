@@ -191,7 +191,7 @@ You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account and a 
    | Build and deploy commands | Don't change them. |
 
 4. Click **Create and deploy** and wait a few minutes until it finishes.
-5. Open the link Cloudflare shows you (it looks like `noteflare.<your-subdomain>.workers.dev`). The page loads but shows an error. That is correct: NoteFlare stays locked until you finish Part 2.
+5. Open the link Cloudflare shows you (it looks like `noteflare.<your-subdomain>.workers.dev`). The page says *Your session has expired. Sign in again*. That is correct: NoteFlare stays locked until you finish Part 2.
 
 **Part 2: Lock it so only you can sign in**
 

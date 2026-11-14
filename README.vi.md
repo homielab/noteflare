@@ -181,7 +181,7 @@ Bạn cần một tài khoản [Cloudflare](https://dash.cloudflare.com/sign-up)
    | Lệnh build và deploy | Không sửa. |
 
 4. Nhấn **Create and deploy** và chờ vài phút cho tới khi xong.
-5. Mở đường link Cloudflare đưa cho bạn (dạng `noteflare.<subdomain>.workers.dev`). Trang mở được nhưng báo lỗi. Như vậy là đúng: NoteFlare bị khoá cho tới khi bạn làm xong Phần 2.
+5. Mở đường link Cloudflare đưa cho bạn (dạng `noteflare.<subdomain>.workers.dev`). Trang hiện *Your session has expired. Sign in again* (Phiên đăng nhập đã hết hạn). Như vậy là đúng: NoteFlare bị khoá cho tới khi bạn làm xong Phần 2.
 
 **Phần 2: Khoá lại để chỉ mình bạn đăng nhập được**
 
