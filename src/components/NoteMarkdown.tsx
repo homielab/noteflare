@@ -2,6 +2,7 @@ import { memo, type ComponentProps } from 'react'
 import { Markdown, type MarkdownComponents } from '@tanstack/markdown/react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n'
+import { highlightCode } from '@/lib/highlight'
 
 interface Props {
   source: string
@@ -51,7 +52,9 @@ export const NoteMarkdown = memo(function NoteMarkdown({ source, onToggleTask, c
 
   return (
     <div className={cn('md', className)}>
-      <Markdown components={components}>{source}</Markdown>
+      <Markdown components={components} highlighter={highlightCode}>
+        {source}
+      </Markdown>
     </div>
   )
 })

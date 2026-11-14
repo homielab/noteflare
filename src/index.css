@@ -195,6 +195,72 @@
   padding: 0;
   font-size: inherit;
 }
+/* Syntax colors for fenced code (TanStack Highlight, GitHub palette). */
+:root {
+  --th-token: inherit;
+  --th-attr: #0550ae;
+  --th-code-inline: #953800;
+  --th-command: #8250df;
+  --th-comment: #6e7781;
+  --th-deleted: #cf222e;
+  --th-function: #8250df;
+  --th-heading: #0550ae;
+  --th-inserted: #1a7f37;
+  --th-keyword: #cf222e;
+  --th-link: #0969da;
+  --th-literal: #0550ae;
+  --th-meta: #57606a;
+  --th-number: #0550ae;
+  --th-operator: #8250df;
+  --th-property: #0550ae;
+  --th-selector: #116329;
+  --th-string: #0a7f64;
+  --th-tag: #116329;
+  --th-type: #953800;
+  --th-variable: #953800;
+}
+.dark {
+  --th-attr: #79c0ff;
+  --th-code-inline: #ffa657;
+  --th-command: #d2a8ff;
+  --th-comment: #8b949e;
+  --th-deleted: #ff7b72;
+  --th-function: #d2a8ff;
+  --th-heading: #79c0ff;
+  --th-inserted: #7ee787;
+  --th-keyword: #ff7b72;
+  --th-link: #58a6ff;
+  --th-literal: #79c0ff;
+  --th-meta: #8b949e;
+  --th-number: #79c0ff;
+  --th-operator: #d2a8ff;
+  --th-property: #79c0ff;
+  --th-selector: #7ee787;
+  --th-string: #a5d6ff;
+  --th-tag: #7ee787;
+  --th-type: #ffa657;
+  --th-variable: #ffa657;
+}
+.md pre .th-attr { color: var(--th-attr); }
+.md pre .th-code-inline { color: var(--th-code-inline); }
+.md pre .th-command { color: var(--th-command); }
+.md pre .th-comment { color: var(--th-comment); font-style: italic; }
+.md pre .th-deleted { color: var(--th-deleted); }
+.md pre .th-function { color: var(--th-function); }
+.md pre .th-heading { color: var(--th-heading); font-weight: 600; }
+.md pre .th-inserted { color: var(--th-inserted); }
+.md pre .th-keyword { color: var(--th-keyword); }
+.md pre .th-link { color: var(--th-link); }
+.md pre .th-literal { color: var(--th-literal); }
+.md pre .th-meta { color: var(--th-meta); }
+.md pre .th-number { color: var(--th-number); }
+.md pre .th-operator { color: var(--th-operator); }
+.md pre .th-property { color: var(--th-property); }
+.md pre .th-selector { color: var(--th-selector); }
+.md pre .th-string { color: var(--th-string); }
+.md pre .th-tag { color: var(--th-tag); }
+.md pre .th-type { color: var(--th-type); }
+.md pre .th-variable { color: var(--th-variable); }
 .md table {
   border-collapse: collapse;
   font-size: 0.875em;
