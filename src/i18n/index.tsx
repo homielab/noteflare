@@ -1,20 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { en, type MessageKey } from './en'
 import { vi } from './vi'
+import { pt } from './pt'
 
 export type { MessageKey }
-export type Lang = 'en' | 'vi'
+export type Lang = 'en' | 'vi' | 'pt'
 export const LANGS: { code: Lang; name: string }[] = [
   { code: 'en', name: 'English' },
   { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'pt', name: 'Português (Brasil)' },
 ]
 
-const dicts: Record<Lang, Record<MessageKey, string>> = { en, vi }
+const dicts: Record<Lang, Record<MessageKey, string>> = { en, vi, pt }
 
 function readLang(): Lang {
   try {
     const saved = localStorage.getItem('lang')
-    if (saved === 'en' || saved === 'vi') return saved
+    if (saved === 'en' || saved === 'vi' || saved === 'pt') return saved
   } catch {
     /* ignore */
   }
@@ -33,7 +35,7 @@ export function t(key: MessageKey, vars?: Record<string, string | number>): stri
   return s
 }
 
-export const dateLocale = () => (current === 'vi' ? 'vi-VN' : 'en-US')
+export const dateLocale = () => (current === 'vi' ? 'vi-VN' : current === 'pt' ? 'pt-BR' : 'en-US')
 
 interface I18nState {
   lang: Lang

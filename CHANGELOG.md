@@ -4,6 +4,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- Portuguese (Brazil) interface.
+
 ## [0.3.0] - 2026-11-15
 
 ### Added

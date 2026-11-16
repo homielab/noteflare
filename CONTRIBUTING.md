@@ -44,7 +44,7 @@ CI runs the same four commands.
 
 - **Keep pull requests focused.** One fix or feature per PR is easier to review and to revert.
 - **Add a test** for logic changes, especially in crypto, sync, merge, import or the API. Tests live in `tests/` and run with Vitest; sync tests use `fake-indexeddb`.
-- **Add both languages.** Every new UI string needs a key in `src/i18n/en.ts` and `src/i18n/vi.ts`. If you don't speak Vietnamese, put the English text in `vi.ts` and say so in the PR; someone will translate it.
+- **Add every language.** Every new UI string needs a key in `src/i18n/en.ts`, `src/i18n/vi.ts` and `src/i18n/pt.ts`. If you don't speak one of them, put the English text there and say so in the PR; someone will translate it.
 - **Change the database only through a new migration** in `migrations/`, numbered after the last one. Never edit a migration that has shipped.
 - **Keep the API compatible.** `/api/v1` is public. Add fields rather than renaming or removing them, and update `worker/openapi.ts` and `docs/API.md` with the change.
 - **Update `CHANGELOG.md`** under "Unreleased" for anything a user would notice.
