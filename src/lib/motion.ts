@@ -16,13 +16,41 @@ export const supportsViewTransitions = () =>
   !prefersReducedMotion()
 
 /**
+ * Which note cards take part in a transition: those on or near the screen,
+ * one note's card, or none. Every named element costs the browser a snapshot,
+ * so a board of hundreds of notes must never name them all.
+ */
+export type TransitionCards = 'near' | 'none' | { id: string }
+
+const CARD_MARK = 'data-vt'
+
+function pickCards(cards: TransitionCards): HTMLElement[] {
+  if (cards === 'none') return []
+  const all = document.querySelectorAll<HTMLElement>('[data-note]')
+  if (cards !== 'near') return Array.from(all).filter((el) => el.dataset.note === cards.id)
+  const margin = innerHeight / 2
+  return Array.from(all).filter((el) => {
+    const r = el.getBoundingClientRect()
+    return r.bottom > -margin && r.top < innerHeight + margin
+  })
+}
+
+/**
  * Run a state update inside a View Transition so elements with a
- * `view-transition-name` slide/morph to their new place.
+ * `view-transition-name` slide/morph to their new place. Cards get their name
+ * (index.css) only while marked here: before the update for where they are,
+ * after it for the ones that arrive.
  * Unsupported browser or reduced motion: just update.
  */
-export function transition(update: () => void) {
+export function transition(update: () => void, cards: TransitionCards = 'near') {
   if (!supportsViewTransitions()) return update()
-  const t = document.startViewTransition(() => flushSync(update))
+  const before = pickCards(cards)
+  for (const el of document.querySelectorAll(`[${CARD_MARK}]`)) el.removeAttribute(CARD_MARK)
+  for (const el of before) el.setAttribute(CARD_MARK, '')
+  const t = document.startViewTransition(() => {
+    flushSync(update)
+    for (const el of pickCards(cards)) el.setAttribute(CARD_MARK, '')
+  })
   // A new transition may interrupt a running one — expected, not an error.
   const ignore = () => {}
   t.ready.catch(ignore)

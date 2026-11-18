@@ -63,6 +63,7 @@ Changes to `packages/client/src/crypto.ts`, `worker/auth.ts`, `worker/tokens.ts`
 - TypeScript, strict. Match the surrounding code: two-space indent, single quotes, no semicolons.
 - UI components follow shadcn/ui conventions and Tailwind tokens from `src/index.css`. Use the existing colour tokens rather than hard-coded colours.
 - Motion goes through `src/lib/motion.ts`, which respects `prefers-reduced-motion`.
+- The board must stay fast with hundreds of notes: a card's props come from `cardProps` (`src/lib/cardProps.ts`) and stay identical while its note doesn't change; `transition()` names only the cards on or near the screen; off-screen cards skip rendering (`src/lib/offscreen.ts`).
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`fix: …`, `feat: …`, `docs: …`).
 
 ## Releases

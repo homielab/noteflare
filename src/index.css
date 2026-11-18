@@ -151,6 +151,13 @@
   break-inside: avoid;
   margin-bottom: 1rem;
 }
+/* Off-screen cards skip rendering once their real size is known (src/lib/offscreen.ts). */
+[data-note] {
+  contain-intrinsic-size: auto 12rem;
+}
+[data-note][data-sized] {
+  content-visibility: auto;
+}
 
 /* Markdown inside notes — compact enough for small cards */
 .md {
@@ -402,6 +409,11 @@
 }
 @keyframes vt-in {
   from { opacity: 0; transform: scale(0.94); filter: blur(4px); }
+}
+
+/* A card is named only while `transition()` marks it (on or near the screen): each name is a snapshot. */
+[data-note][data-vt] {
+  view-transition-name: var(--vt);
 }
 
 /* Theme switch (themeTransition): one snapshot, revealed in a circle */

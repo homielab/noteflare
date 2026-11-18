@@ -6,6 +6,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ### Fixed
 
+- Boards with hundreds of notes are quick again: opening a note, typing in it and closing it no longer lag.
 - First-run login setup no longer fails with “Check your connection” when the database migrations weren't applied. It now says so and tells you how to fix it: run `bun run db:migrate:remote`, or deploy again.
 
 ## [0.7.0] - 2026-11-17

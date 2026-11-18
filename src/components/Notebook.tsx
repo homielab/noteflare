@@ -13,6 +13,7 @@ import { LANGS, useI18n } from '@/i18n'
 import { useTheme } from '@/hooks/useTheme'
 import { useInstallPrompt } from '@/lib/pwa'
 import { NoteCard, type ReorderHandlers } from './NoteCard'
+import { cardProps, MAX_REVEAL, stableHandlers, type BoardState, type CardHandlers } from '@/lib/cardProps'
 import { neighbourId, reorderPosition } from '@/lib/reorder'
 import { NoteEditor } from './NoteEditor'
 import { LabelMenu } from './LabelMenu'
@@ -35,7 +36,6 @@ type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind
 
 const byPosition = (a: Note, b: Note) => b.position - a.position
 const sameView = (a: View, b: View) => a.kind === b.kind && (a.kind !== 'label' || a.label === (b as typeof a).label)
-const MAX_REVEAL = 18
 const LAYOUT_KEY = 'noteflare:layout'
 type Layout = 'grid' | 'list'
 
@@ -172,17 +172,12 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   // Only notes still shown count: a search or a sync may have removed some.
   const picked = selecting ? ordered.filter((n) => selected.has(n.id)) : []
   const canReorder = view.kind !== 'trash' && !selecting
-  const revealIndex = (id: string) => {
-    if (!revealing) return undefined
-    const i = ordered.findIndex((n) => n.id === id)
-    return i >= 0 && i < MAX_REVEAL ? i : undefined
-  }
 
   const newNote = () => {
     const n = emptyNote()
     if (view.kind === 'label') n.labels = [view.label]
     if (view.kind === 'archive') n.archived = true
-    transition(() => setEditing(n))
+    transition(() => setEditing(n), 'none')
   }
 
   // Shortcuts: "/" to search, "c" for a new note, "?" for the list of shortcuts.
@@ -211,7 +206,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     if (a.kind === 'files') return importer.current?.importFiles(a.files)
     const n = { ...emptyNote(), title: a.title, body: a.text }
     upsert(n) // saved straight away, so nothing shared is lost if the app closes
-    transition(() => setEditing(n))
+    transition(() => setEditing(n), 'none')
   }
   useEffect(() => {
     if (store.loading) return
@@ -236,13 +231,11 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     flush()
     location.assign('/')
   }
-  const open = useCallback(
-    (id: string) => {
-      const n = store.byId.get(id)
-      if (n) transition(() => setEditing(n))
-    },
-    [store.byId],
-  )
+  const open = (id: string) => {
+    const n = store.byId.get(id)
+    // Nothing else moves when a note opens: only its card morphs into the editor.
+    if (n) transition(() => setEditing(n), { id })
+  }
 
   const moveWithUndo = useCallback(
     (id: string, patch: NotePatch, message: string, undo: NotePatch) => {
@@ -263,21 +256,18 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     [update, moveWithUndo, t],
   )
 
-  const deleteForever = useCallback(
-    (id: string) => {
-      transition(() => {
-        setEditing((e) => (e?.id === id ? null : e))
-        // Images that only this note used go with it.
-        const mine = attachmentIds(store.byId.get(id)?.body ?? '')
-        const used = new Set(store.notes.filter((n) => n.id !== id).flatMap((n) => attachmentIds(n.body)))
-        void destroy(id).then(() => {
-          toast(t('nb.deletedForever'))
-          deleteAttachments(mine.filter((a) => !used.has(a)))
-        })
+  const deleteForever = (id: string) => {
+    transition(() => {
+      setEditing((e) => (e?.id === id ? null : e))
+      // Images that only this note used go with it.
+      const mine = attachmentIds(store.byId.get(id)?.body ?? '')
+      const used = new Set(store.notes.filter((n) => n.id !== id).flatMap((n) => attachmentIds(n.body)))
+      void destroy(id).then(() => {
+        toast(t('nb.deletedForever'))
+        deleteAttachments(mine.filter((a) => !used.has(a)))
       })
-    },
-    [destroy, t, store.byId, store.notes],
-  )
+    })
+  }
 
   const toggleSelected = useCallback((id: string) => {
     setSelected((cur) => {
@@ -360,6 +350,21 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     }),
     [moveTo],
   )
+
+  // Cards are memoized and there may be hundreds: their handlers keep one identity for good,
+  // so an edit to one note (a new `store.byId` per keystroke) re-renders only that note's card.
+  const handlersRef = useRef<CardHandlers>(null as never)
+  handlersRef.current = { onOpen: open, onChange: change, onDeleteForever: deleteForever, onSelect: toggleSelected }
+  const [cardHandlers] = useState(() => stableHandlers(() => handlersRef.current))
+  const board: BoardState = {
+    editingId: editing?.id ?? null,
+    focusId,
+    dragId,
+    overId,
+    selected: selecting ? selected : null,
+    reorder: canReorder ? reorder : undefined,
+    revealing,
+  }
 
   /** Delete everything in the trash forever, after asking. Images only those notes used go too. */
   const emptyTrash = async () => {
@@ -662,15 +667,15 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           <>
             {pinned.length > 0 && (
               <Section label={t('nb.pinned')} layout={layout}>
-                {pinned.map((n) => (
-                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} reorder={canReorder ? reorder : undefined} dragging={dragId === n.id} dropTarget={overId === n.id} selecting={selecting} selected={selecting && selected.has(n.id)} onSelect={toggleSelected} />
+                {pinned.map((n, i) => (
+                  <NoteCard key={n.id} {...cardProps(n, i, board, cardHandlers)} />
                 ))}
               </Section>
             )}
             {others.length > 0 && (
               <Section label={pinned.length ? t('nb.others') : undefined} layout={layout}>
-                {others.map((n) => (
-                  <NoteCard key={n.id} note={n} revealIndex={revealIndex(n.id)} lifted={editing?.id === n.id} focused={focusId === n.id} onOpen={open} onChange={change} onDeleteForever={deleteForever} reorder={canReorder ? reorder : undefined} dragging={dragId === n.id} dropTarget={overId === n.id} selecting={selecting} selected={selecting && selected.has(n.id)} onSelect={toggleSelected} />
+                {others.map((n, i) => (
+                  <NoteCard key={n.id} {...cardProps(n, pinned.length + i, board, cardHandlers)} />
                 ))}
               </Section>
             )}
