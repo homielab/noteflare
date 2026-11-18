@@ -2,6 +2,20 @@ import type { MessageKey } from './en'
 
 /** French (Français). TypeScript flags any key missing compared to en.ts. */
 export const fr: Record<MessageKey, string> = {
+  'common.cancel': 'Annuler',
+  'act.copy': 'Faire une copie',
+  'nb.copied': 'Copie créée',
+  'labels.edit': 'Modifier le libellé',
+  'labels.rename': 'Renommer',
+  'labels.delete': 'Supprimer le libellé',
+  'labels.renameTitle': 'Renommer le libellé',
+  'labels.newName': 'Nouveau nom',
+  'labels.mergeHint': 'Les notes passeront au libellé existant « {to} ».',
+  'labels.renamed': 'Libellé renommé en « {l} »',
+  'labels.merged': 'Libellé « {from} » fusionné dans « {to} »',
+  'labels.deleted': 'Libellé « {l} » supprimé',
+  'labels.deleteConfirm': 'Retirer le libellé « {l} » de {n} notes ? Les notes sont conservées.',
+  'labels.deleteConfirmOne': 'Retirer le libellé « {l} » de 1 note ? La note est conservée.',
   'common.close': 'Fermer',
   'common.undo': 'Annuler',
   'common.loading': 'Chargement…',

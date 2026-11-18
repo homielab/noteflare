@@ -15,6 +15,11 @@ export interface Note extends NotePayload {
 
 export type NotePatch = Partial<Omit<Note, 'id' | 'version' | 'createdAt' | 'updatedAt'>>
 
+/** A new note with the same content (new id, not pinned, not trashed, first in its section). */
+export function copyNote(n: Note): Note {
+  return { ...emptyNote(), title: n.title, body: n.body, color: n.color, labels: [...n.labels], archived: n.archived }
+}
+
 export function emptyNote(): Note {
   const now = Date.now()
   return {

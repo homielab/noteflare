@@ -28,12 +28,13 @@ interface Props {
   onSave: (note: Note) => void
   onClose: (note: Note) => void
   onDeleteForever: (id: string) => void
+  onCopy: (note: Note) => void
 }
 
 /** Existing notes with text open in reading mode; new and empty ones open for typing. */
 const opensInPreview = (note: Note | null) => !!note?.body && note.version > 0
 
-export function NoteEditor({ note, transitionName, allLabels, saveState, onSave, onClose, onDeleteForever }: Props) {
+export function NoteEditor({ note, transitionName, allLabels, saveState, onSave, onClose, onDeleteForever, onCopy }: Props) {
   const { t } = useI18n()
   const [draft, setDraft] = useState<Note | null>(note)
   const [preview, setPreview] = useState(() => opensInPreview(note))
@@ -330,6 +331,7 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
             note={draft}
             onChange={(p) => change(p, 'trashedAt' in p || 'archived' in p)}
             onDeleteForever={() => onDeleteForever(draft.id)}
+            onCopy={() => onCopy(draft)}
           />
           {!draft.trashedAt && (
             <Tooltip label={t('ed.checklist')}>

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Trash2, X } from 'lucide-react'
+import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useVault } from '@/lib/vault'
-import { emptyNote, isEmptyNote, useNotes, type Note, type NotePatch } from '@/lib/notes'
+import { copyNote, emptyNote, isEmptyNote, useNotes, type Note, type NotePatch } from '@/lib/notes'
 import { prefersReducedMotion, transition, VT_CLASS, vtName } from '@/lib/motion'
 import { LANGS, useI18n } from '@/i18n'
 import { useTheme } from '@/hooks/useTheme'
@@ -17,7 +17,8 @@ import { cardProps, MAX_REVEAL, stableHandlers, type BoardState, type CardHandle
 import { neighbourId, reorderPosition } from '@/lib/reorder'
 import { NoteEditor } from './NoteEditor'
 import { LabelMenu } from './LabelMenu'
-import { bulkLabelChanges, commonLabels, undoLabelChanges } from '@/lib/bulkLabels'
+import { bulkLabelChanges, commonLabels, renameLabelChanges, resolveLabel, restoreLabelChanges, undoLabelChanges } from '@/lib/bulkLabels'
+import { RenameLabelDialog } from './RenameLabelDialog'
 import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { PasskeysDialog } from './PasskeysDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
@@ -269,6 +270,50 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     })
   }
 
+  const copy = (note: Note) => {
+    transition(() => void upsert(copyNote(note), { immediate: true }))
+    toast(t('nb.copied'))
+  }
+
+  const [renaming, setRenaming] = useState<string | null>(null)
+  /** Rename a label on every note (trashed ones too). An existing target merges. One toast undoes it. */
+  const renameLabel = (from: string, typed: string) => {
+    const to = resolveLabel(typed, labels, from)
+    const merged = labels.includes(to)
+    const changes = renameLabelChanges(store.notes, from, to)
+    if (!changes.length) return
+    transition(() => {
+      for (const c of changes) update(c.id, { labels: c.labels }, { immediate: true })
+      setView((v) => (v.kind === 'label' && v.label === from ? { kind: 'label', label: to } : v))
+    })
+    toast(merged ? t('labels.merged', { from, to }) : t('labels.renamed', { l: to }), {
+      action: {
+        label: t('common.undo'),
+        onClick: () =>
+          transition(() => {
+            restoreLabelChanges(changes, (id) => byIdRef.current.get(id)).forEach((c) => update(c.id, { labels: c.labels }, { immediate: true }))
+            setView((v) => (v.kind === 'label' && v.label === to && !merged ? { kind: 'label', label: from } : v))
+          }),
+      },
+    })
+  }
+  /** Take a label off every note (the notes stay), after asking. One toast undoes it. */
+  const deleteLabel = (label: string) => {
+    const changes = bulkLabelChanges(store.notes, label, false)
+    if (!changes.length) return
+    if (!window.confirm(changes.length === 1 ? t('labels.deleteConfirmOne', { l: label }) : t('labels.deleteConfirm', { l: label, n: changes.length }))) return
+    transition(() => {
+      for (const c of changes) update(c.id, { labels: c.labels }, { immediate: true })
+      setView((v) => (v.kind === 'label' && v.label === label ? { kind: 'notes' } : v))
+    })
+    toast(t('labels.deleted', { l: label }), {
+      action: {
+        label: t('common.undo'),
+        onClick: () => undoLabelChanges(changes, (id) => byIdRef.current.get(id), label, false).forEach((c) => update(c.id, { labels: c.labels }, { immediate: true })),
+      },
+    })
+  }
+
   const toggleSelected = useCallback((id: string) => {
     setSelected((cur) => {
       if (!cur) return cur
@@ -354,7 +399,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   // Cards are memoized and there may be hundreds: their handlers keep one identity for good,
   // so an edit to one note (a new `store.byId` per keystroke) re-renders only that note's card.
   const handlersRef = useRef<CardHandlers>(null as never)
-  handlersRef.current = { onOpen: open, onChange: change, onDeleteForever: deleteForever, onSelect: toggleSelected }
+  handlersRef.current = { onOpen: open, onChange: change, onDeleteForever: deleteForever, onCopy: copy, onSelect: toggleSelected }
   const [cardHandlers] = useState(() => stableHandlers(() => handlersRef.current))
   const board: BoardState = {
     editingId: editing?.id ?? null,
@@ -652,7 +697,24 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
         )}
 
         {!selecting && view.kind !== 'trash' && !store.loading && visible.length > 0 && (
-          <div className="mb-3 flex justify-end">
+          <div className="mb-3 flex justify-end gap-1">
+            {view.kind === 'label' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <Tag /> {t('labels.edit')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setRenaming(view.label)}>
+                    <Pencil /> {t('labels.rename')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => deleteLabel(view.label)}>
+                    <Trash2 /> {t('labels.delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setSelected(new Set())}>
               <SquareCheckBig /> {t('nb.select')}
             </Button>
@@ -744,7 +806,9 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
         onSave={(n) => upsert(n)}
         onClose={closeEditor}
         onDeleteForever={deleteForever}
+        onCopy={copy}
       />
+      <RenameLabelDialog label={renaming} labels={labels} onClose={() => setRenaming(null)} onRename={renameLabel} />
       <ChangePassphraseDialog open={pwOpen} onOpenChange={setPwOpen} />
       <PasskeysDialog open={pkOpen} onOpenChange={setPkOpen} />
       <IntegrationsDialog open={intOpen} onOpenChange={setIntOpen} />

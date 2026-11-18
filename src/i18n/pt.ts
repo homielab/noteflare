@@ -2,6 +2,20 @@ import type { MessageKey } from './en'
 
 /** Portuguese (Brazil). TypeScript flags any key missing compared to en.ts. */
 export const pt: Record<MessageKey, string> = {
+  'common.cancel': 'Cancelar',
+  'act.copy': 'Fazer uma cópia',
+  'nb.copied': 'Cópia criada',
+  'labels.edit': 'Editar marcador',
+  'labels.rename': 'Renomear',
+  'labels.delete': 'Excluir marcador',
+  'labels.renameTitle': 'Renomear marcador',
+  'labels.newName': 'Novo nome',
+  'labels.mergeHint': 'As notas passarão para o marcador existente “{to}”.',
+  'labels.renamed': 'Marcador renomeado para “{l}”',
+  'labels.merged': 'Marcador “{from}” mesclado em “{to}”',
+  'labels.deleted': 'Marcador “{l}” excluído',
+  'labels.deleteConfirm': 'Remover o marcador “{l}” de {n} notas? As notas permanecem.',
+  'labels.deleteConfirmOne': 'Remover o marcador “{l}” de 1 nota? A nota permanece.',
   'common.close': 'Fechar',
   'common.undo': 'Desfazer',
   'common.loading': 'Carregando…',

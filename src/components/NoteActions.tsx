@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Archive, ArchiveRestore, Pin, RotateCcw, Share2, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Copy, Pin, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
@@ -11,6 +11,7 @@ interface Props {
   note: Note
   onChange: (patch: NotePatch) => void
   onDeleteForever: () => void
+  onCopy: () => void
 }
 
 function Act({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
@@ -41,7 +42,7 @@ export function PinButton({ note, onChange }: Pick<Props, 'note' | 'onChange'>) 
   )
 }
 
-export function NoteActions({ note, onChange, onDeleteForever }: Props) {
+export function NoteActions({ note, onChange, onDeleteForever, onCopy }: Props) {
   const { t } = useI18n()
   const [sharing, setSharing] = useState(false)
   if (note.trashedAt) {
@@ -69,6 +70,9 @@ export function NoteActions({ note, onChange, onDeleteForever }: Props) {
         <Share2 />
       </Act>
       <ShareDialog note={note} open={sharing} onOpenChange={setSharing} />
+      <Act label={t('act.copy')} onClick={onCopy}>
+        <Copy />
+      </Act>
       <Act label={t('act.trash')} onClick={() => onChange({ trashedAt: Date.now(), pinned: false })}>
         <Trash2 />
       </Act>

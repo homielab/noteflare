@@ -2,6 +2,20 @@ import type { MessageKey } from './en'
 
 /** Spanish (Español). TypeScript flags any key missing compared to en.ts. */
 export const es: Record<MessageKey, string> = {
+  'common.cancel': 'Cancelar',
+  'act.copy': 'Hacer una copia',
+  'nb.copied': 'Copia creada',
+  'labels.edit': 'Editar etiqueta',
+  'labels.rename': 'Renombrar',
+  'labels.delete': 'Eliminar etiqueta',
+  'labels.renameTitle': 'Renombrar etiqueta',
+  'labels.newName': 'Nuevo nombre',
+  'labels.mergeHint': 'Las notas pasarán a la etiqueta existente «{to}».',
+  'labels.renamed': 'Etiqueta renombrada a «{l}»',
+  'labels.merged': 'Etiqueta «{from}» fusionada con «{to}»',
+  'labels.deleted': 'Etiqueta «{l}» eliminada',
+  'labels.deleteConfirm': '¿Quitar la etiqueta «{l}» de {n} notas? Las notas se conservan.',
+  'labels.deleteConfirmOne': '¿Quitar la etiqueta «{l}» de 1 nota? La nota se conserva.',
   'common.close': 'Cerrar',
   'common.undo': 'Deshacer',
   'common.loading': 'Cargando…',

@@ -18,7 +18,7 @@ export interface BoardState {
   revealing: boolean
 }
 
-export type CardHandlers = Pick<NoteCardProps, 'onOpen' | 'onChange' | 'onDeleteForever'> & { onSelect: (id: string) => void }
+export type CardHandlers = Pick<NoteCardProps, 'onOpen' | 'onChange' | 'onDeleteForever' | 'onCopy'> & { onSelect: (id: string) => void }
 
 /**
  * The props of one card. `NoteCard` is memoized, so every value here must stay

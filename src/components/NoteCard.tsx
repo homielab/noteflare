@@ -21,6 +21,7 @@ export interface NoteCardProps {
   onOpen: (id: string) => void
   onChange: (id: string, patch: NotePatch, immediate?: boolean) => void
   onDeleteForever: (id: string) => void
+  onCopy: (note: Note) => void
   /** Drag-and-drop reordering; omitted where the order can't change (trash). */
   reorder?: ReorderHandlers
   /** This card is being dragged. */
@@ -50,7 +51,7 @@ const isNoteDrag = (e: DragEvent<HTMLElement>) => Array.from(e.dataTransfer.type
 const reveal =
   'opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'
 
-export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focused, onOpen, onChange, onDeleteForever, reorder, dragging, dropTarget, selecting, selected, onSelect }: NoteCardProps) {
+export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focused, onOpen, onChange, onDeleteForever, onCopy, reorder, dragging, dropTarget, selecting, selected, onSelect }: NoteCardProps) {
   const { t } = useI18n()
   const activate = () => (selecting ? onSelect?.(note.id) : onOpen(note.id))
   const change = (patch: NotePatch) => onChange(note.id, patch, true)
@@ -193,7 +194,7 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
           <div className="h-2" />
         ) : (
           <div className={cn('-ml-2 mt-1 flex h-8 items-center gap-0.5', reveal)}>
-            <NoteActions note={note} onChange={change} onDeleteForever={() => onDeleteForever(note.id)} />
+            <NoteActions note={note} onChange={change} onDeleteForever={() => onDeleteForever(note.id)} onCopy={() => onCopy(note)} />
           </div>
         )}
       </div>

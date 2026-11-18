@@ -10,6 +10,7 @@ function render(byId: Map<string, Note>, opened: Note[]): CardHandlers {
     onOpen: (id) => void opened.push(byId.get(id)!),
     onChange: () => {},
     onDeleteForever: () => {},
+    onCopy: () => {},
     onSelect: () => {},
   }
 }

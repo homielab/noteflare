@@ -4,6 +4,11 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- Rename or delete a label everywhere at once: open the label, then **Edit label**. Renaming to a label that exists merges the two.
+- Make a copy of a note from its menu.
+
 ### Changed
 
 - Images now say what's wrong: offline, deleted, storage turned off or can't be decrypted — with Retry when the connection hiccups, and no more jumping text while they load.

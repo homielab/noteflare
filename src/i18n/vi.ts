@@ -2,6 +2,20 @@ import type { MessageKey } from './en'
 
 /** Vietnamese. TypeScript flags any key missing compared to en.ts. */
 export const vi: Record<MessageKey, string> = {
+  'common.cancel': 'Hủy',
+  'act.copy': 'Tạo bản sao',
+  'nb.copied': 'Đã tạo bản sao',
+  'labels.edit': 'Sửa nhãn',
+  'labels.rename': 'Đổi tên',
+  'labels.delete': 'Xóa nhãn',
+  'labels.renameTitle': 'Đổi tên nhãn',
+  'labels.newName': 'Tên mới',
+  'labels.mergeHint': 'Các ghi chú sẽ chuyển sang nhãn đã có “{to}”.',
+  'labels.renamed': 'Đã đổi tên nhãn thành “{l}”',
+  'labels.merged': 'Đã gộp nhãn “{from}” vào “{to}”',
+  'labels.deleted': 'Đã xóa nhãn “{l}”',
+  'labels.deleteConfirm': 'Xóa nhãn “{l}” khỏi {n} ghi chú? Các ghi chú vẫn được giữ lại.',
+  'labels.deleteConfirmOne': 'Xóa nhãn “{l}” khỏi 1 ghi chú? Ghi chú vẫn được giữ lại.',
   'common.close': 'Đóng',
   'common.undo': 'Hoàn tác',
   'common.loading': 'Đang tải…',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bulkLabelChanges, commonLabels, undoLabelChanges } from '../src/lib/bulkLabels'
+import { bulkLabelChanges, commonLabels, renameLabelChanges, resolveLabel, restoreLabelChanges, undoLabelChanges } from '../src/lib/bulkLabels'
 
 const notes = () => [
   { id: 'a', labels: ['x', 'y'] },
@@ -58,5 +58,50 @@ describe('undoLabelChanges', () => {
       { id: 'a', labels: ['x', 'y', 'w'] },
       { id: 'b', labels: ['y', 'w'] },
     ])
+  })
+})
+
+describe('renaming a label', () => {
+  const note = (id: string, labels: string[]) => ({ id, labels })
+
+  it('puts the new name in the old one’s place and keeps what it replaced', () => {
+    const a = note('a', ['x', 'work', 'y'])
+    const [c, ...rest] = renameLabelChanges([a], 'work', 'job')
+    expect(rest).toEqual([])
+    expect(c).toEqual({ id: 'a', labels: ['x', 'job', 'y'], previous: ['x', 'work', 'y'] })
+  })
+
+  it('merges into an existing label without a duplicate and leaves other notes out', () => {
+    const both = note('both', ['work', 'job'])
+    const only = note('only', ['work'])
+    const other = note('other', ['job'])
+    const changes = renameLabelChanges([both, only, other], 'work', 'job')
+    expect(changes.map((c) => [c.id, c.labels])).toEqual([['both', ['job']], ['only', ['job']]])
+  })
+
+  it('does nothing when the name is the same', () => {
+    expect(renameLabelChanges([note('a', ['x'])], 'x', 'x')).toEqual([])
+  })
+
+  it('restores untouched notes, skipping changed and missing ones', () => {
+    const notes = [note('a', ['w']), note('b', ['w']), note('c', ['w'])]
+    const changes = renameLabelChanges(notes, 'w', 'j')
+    const now = new Map([['a', note('a', ['j'])], ['b', note('b', ['j', 'new'])]])
+    const undo = restoreLabelChanges(changes, (id) => now.get(id))
+    expect(undo.map((c) => [c.id, c.labels])).toEqual([['a', ['w']]])
+  })
+
+  it('resolves the spelling to an existing label, trimmed', () => {
+    expect(resolveLabel('  work ', ['Work', 'Home'], 'old')).toBe('Work')
+    expect(resolveLabel(' fresh ', ['Work'], 'old')).toBe('fresh')
+    expect(resolveLabel('work', ['Work'], 'Work')).toBe('work')
+  })
+
+  it('deletes a label and undoes it', () => {
+    const notes = [note('a', ['x', 'y']), note('b', ['z'])]
+    const changes = bulkLabelChanges(notes, 'x', false)
+    expect(changes.map((c) => [c.id, c.labels])).toEqual([['a', ['y']]])
+    const undo = undoLabelChanges(changes, () => note('a', ['y']), 'x', false)
+    expect(undo[0].labels).toEqual(['x', 'y'])
   })
 })
