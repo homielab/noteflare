@@ -52,6 +52,38 @@ async function raw(path: string, init?: RequestInit): Promise<Response> {
   return res
 }
 
+export interface PutBlobOptions {
+  onProgress?: (fraction: number) => void
+  signal?: AbortSignal
+}
+
+/** Upload with progress and cancel, which fetch can't do. Network failures are TypeErrors, as with fetch. */
+function putBlobWithProgress(id: string, data: Uint8Array<ArrayBuffer>, { onProgress, signal }: PutBlobOptions): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const aborted = () => new DOMException('Aborted', 'AbortError')
+    if (signal?.aborted) return reject(aborted())
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', `/api/blobs/${id}`)
+    xhr.withCredentials = true
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream')
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) onProgress?.(e.loaded / e.total)
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve()
+      let body: unknown = null
+      try {
+        body = JSON.parse(xhr.responseText)
+      } catch {}
+      reject(new ApiError(xhr.status, body))
+    }
+    xhr.onerror = () => reject(new TypeError('Network error'))
+    xhr.onabort = () => reject(aborted())
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true })
+    xhr.send(data)
+  })
+}
+
 /** First-run setup of the Cloudflare Access login (no sign-in yet). */
 export interface SetupInfo {
   needed: boolean
@@ -85,8 +117,10 @@ export const api = {
   createToken: (body: CreateTokenBody) =>
     req<CreateTokenResponse>('/tokens', { method: 'POST', body: JSON.stringify(body) }),
   revokeToken: (id: string) => req<void>(`/tokens/${id}`, { method: 'DELETE' }),
-  putBlob: (id: string, data: Uint8Array<ArrayBuffer>) =>
-    raw(`/blobs/${id}`, { method: 'PUT', body: data, headers: { 'Content-Type': 'application/octet-stream' } }).then(() => undefined),
+  putBlob: (id: string, data: Uint8Array<ArrayBuffer>, opts?: PutBlobOptions) =>
+    opts
+      ? putBlobWithProgress(id, data, opts)
+      : raw(`/blobs/${id}`, { method: 'PUT', body: data, headers: { 'Content-Type': 'application/octet-stream' } }).then(() => undefined),
   getBlob: (id: string) => raw(`/blobs/${id}`).then(async (res) => new Uint8Array(await res.arrayBuffer())),
   listBackups: () => req<{ backups: { date: string; size: number }[] }>('/backups').then((r) => r.backups),
   getBackup: (date: string) => raw(`/backups/${date}`).then((res) => res.text()),

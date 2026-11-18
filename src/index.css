@@ -309,6 +309,7 @@
 }
 .md img {
   max-width: 100%;
+  height: auto;
   border-radius: 6px;
 }
 
@@ -433,6 +434,9 @@
   background: linear-gradient(100deg, var(--surface) 30%, color-mix(in oklab, var(--surface), var(--foreground) 5%) 50%, var(--surface) 70%);
   background-size: 250% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
+}
+.skeleton-flat {
+  margin-bottom: 0;
 }
 @keyframes shimmer {
   from { background-position: 100% 0; }

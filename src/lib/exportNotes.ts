@@ -10,7 +10,7 @@ import type { ParsedNote } from './importMarkdown'
 import type { Note } from './noteModel'
 import type { ZipEntry } from './zip'
 
-const ATTACHMENT_URL = /\/api\/blobs\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi
+const ATTACHMENT_URL = /\/api\/blobs\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:#[\w=&.-]*)?/gi
 
 // ---------------------------------------------------------------- Markdown
 

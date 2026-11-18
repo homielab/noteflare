@@ -4,6 +4,11 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Changed
+
+- Images now say what's wrong: offline, deleted, storage turned off or can't be decrypted — with Retry when the connection hiccups, and no more jumping text while they load.
+- Uploads show a preview with progress and a Cancel button.
+
 ### Fixed
 
 - Boards with hundreds of notes are quick again: opening a note, typing in it and closing it no longer lag.

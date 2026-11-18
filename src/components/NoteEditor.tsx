@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ListChecks, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -14,6 +14,7 @@ import { dateLocale, useI18n } from '@/i18n'
 import { NoteMarkdown } from './NoteMarkdown'
 import { NoteActions, PinButton } from './NoteActions'
 import { LabelMenu } from './LabelMenu'
+import { ImagePlaceholder } from './ImagePlaceholder'
 import { colorVar } from './noteColors'
 import { AttachmentError, uploadAttachment, useAttachments } from '@/lib/attachments'
 
@@ -48,6 +49,15 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const attachments = useAttachments()
+  const [uploads, setUploads] = useState<{ key: string; name: string; preview?: string; progress: number; controller: AbortController }[]>([])
+  const running = useRef(new Set<AbortController>())
+  // Closing the note (or switching to another) cancels what is still uploading.
+  useEffect(
+    () => () => {
+      for (const c of running.current) c.abort()
+    },
+    [draftId],
+  )
   // The newest draft, for work that finishes after an await (uploads).
   const draftRef = useRef<Note | null>(note)
   draftRef.current = draft
@@ -131,10 +141,23 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
   /** Encrypt and upload files, then put their Markdown at the cursor (or at the end, in reading mode). */
   const addFiles = async (files: File[]) => {
     if (!attachments || !files.length) return
-    for (const file of files) {
-      const id = toast.loading(t('att.uploading'))
+    const entries = files.map((file) => ({
+      file,
+      key: crypto.randomUUID(),
+      name: file.name,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+      progress: 0,
+      controller: new AbortController(),
+    }))
+    for (const e of entries) running.current.add(e.controller)
+    setUploads((list) => [...list, ...entries.map(({ file: _file, ...tile }) => tile)])
+    for (const { file, key, preview, controller } of entries) {
       try {
-        const markdown = await uploadAttachment(attachments.dek, file)
+        if (controller.signal.aborted) continue
+        const markdown = await uploadAttachment(attachments.dek, file, {
+          signal: controller.signal,
+          onProgress: (progress) => setUploads((list) => list.map((u) => (u.key === key ? { ...u, progress } : u))),
+        })
         const el = bodyRef.current
         if (el) {
           const at = el.selectionStart
@@ -145,9 +168,14 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
           const body = draftRef.current?.body ?? ''
           change({ body: body.trim() ? `${body.replace(/\s+$/, '')}\n\n${markdown}\n` : `${markdown}\n` })
         }
-        toast.success(t('att.added'), { id })
+        toast.success(t('att.added'))
       } catch (err) {
-        toast.error(err instanceof AttachmentError ? t('att.tooLarge') : t('att.failed'), { id })
+        if (err instanceof DOMException && err.name === 'AbortError') continue
+        toast.error(err instanceof AttachmentError ? t('att.tooLarge') : t('att.failed'))
+      } finally {
+        running.current.delete(controller)
+        setUploads((list) => list.filter((u) => u.key !== key))
+        if (preview) URL.revokeObjectURL(preview)
       }
     }
   }
@@ -279,6 +307,21 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
               </li>
             ))}
           </ul>
+        )}
+
+        {uploads.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-5 pb-2">
+            {uploads.map((u) => (
+              <ImagePlaceholder
+                key={u.key}
+                state="uploading"
+                alt={u.name}
+                preview={u.preview}
+                progress={u.progress}
+                onCancel={() => u.controller.abort()}
+              />
+            ))}
+          </div>
         )}
 
         <div className="flex flex-wrap items-center gap-0.5 px-3 pb-3 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:border-t max-sm:border-foreground/10 max-sm:pt-2 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] [html[data-keyboard=open]_&]:pb-2">

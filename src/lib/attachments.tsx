@@ -5,6 +5,10 @@
  *   ![photo](/api/blobs/<id>)             an image, shown in the note
  *   [report.pdf (1.2 MB)](/api/blobs/<id>)   any other file, shown as a chip that downloads it
  *
+ * An image link may end with `#w=<width>&h=<height>` (pixels): the app writes it for new
+ * uploads so the box is reserved before the image loads. It never reaches the server, is
+ * optional, and readers ignore keys they don't know.
+ *
  * Rendering an image fetches the blob, decrypts it and shows it from a local object URL.
  * A file is fetched and decrypted only when its chip is clicked; its name and type live
  * inside the ciphertext. The feature is on only when the deployment has an R2 bucket bound
@@ -14,17 +18,32 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 import { ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES } from '../../shared/types'
-import { api } from './api'
+import { api, ApiError } from './api'
 import { decryptBlob, encryptBlob } from './crypto'
 import { downloadFile } from './exportNotes'
 import { useI18n } from '../i18n'
+import { ImagePlaceholder, type ImageFailure } from '../components/ImagePlaceholder'
 
 const ID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-const URL_RE = new RegExp(`/api/blobs/(${ID})`, 'gi')
-const EXACT_RE = new RegExp(`^/api/blobs/(${ID})$`, 'i')
+const URL_RE = new RegExp(`/api/blobs/(${ID})(?:#[\\w=&.-]*)?`, 'gi')
+const EXACT_RE = new RegExp(`^/api/blobs/(${ID})(?:#([\\w=&.-]*))?$`, 'i')
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/avif': 'avif' }
 
-export const attachmentUrl = (id: string) => `/api/blobs/${id}`
+export const attachmentUrl = (id: string, size?: { w: number; h: number }) =>
+  `/api/blobs/${id}${size ? `#w=${size.w}&h=${size.h}` : ''}`
+/** The pixel size recorded in an attachment link's fragment, if it has a valid one. */
+export function attachmentSize(src: unknown): { w: number; h: number } | null {
+  const fragment = typeof src === 'string' ? EXACT_RE.exec(src)?.[2] : undefined
+  if (!fragment) return null
+  const params = new URLSearchParams(fragment)
+  const dim = (key: string) => {
+    const v = params.get(key)
+    return v !== null && /^\d+$/.test(v) && +v >= 1 && +v <= 100000 ? +v : null
+  }
+  const w = dim('w')
+  const h = dim('h')
+  return w && h ? { w, h } : null
+}
 /** The attachment id if `src` is exactly an attachment URL. */
 export const attachmentIdOf = (src: unknown) => (typeof src === 'string' ? (EXACT_RE.exec(src)?.[1].toLowerCase() ?? null) : null)
 /** Every attachment a note's Markdown refers to. */
@@ -68,10 +87,38 @@ const urls = new Map<string, Promise<string>>()
 /** Download and decrypt an attachment of any kind. */
 export const loadAttachment = async (dek: CryptoKey, id: string) => decryptBlob(dek, id, await api.getBlob(id))
 
-async function loadImage(dek: CryptoKey, id: string) {
-  const image = await loadAttachment(dek, id)
+export type { ImageFailure }
+export class ImageLoadError extends Error {
+  constructor(public reason: ImageFailure) {
+    super(`Image not loaded: ${reason}`)
+  }
+}
+
+/** Download and decrypt an image; a failure always throws an `ImageLoadError` that says why. Exported for tests. */
+export async function loadImage(
+  dek: CryptoKey,
+  id: string,
+  deps: { getBlob: (id: string) => Promise<Uint8Array>; online: () => boolean } = { getBlob: api.getBlob, online: () => navigator.onLine !== false },
+) {
+  let blob: Uint8Array
+  try {
+    blob = await deps.getBlob(id)
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.status === 404) throw new ImageLoadError('deleted')
+      if (err.status === 501 && (err.body as { error?: string } | null)?.error === 'attachments_disabled') throw new ImageLoadError('disabled')
+      throw new ImageLoadError('network')
+    }
+    throw new ImageLoadError(deps.online() ? 'network' : 'offline')
+  }
+  let image: Attachment
+  try {
+    image = await decryptBlob(dek, id, blob)
+  } catch {
+    throw new ImageLoadError('undecryptable')
+  }
   // Only image types are ever shown; anything else in a blob is treated as unreadable.
-  if (!isImage(image.type)) throw new Error('Not an image')
+  if (!isImage(image.type)) throw new ImageLoadError('undecryptable')
   return image
 }
 
@@ -90,21 +137,51 @@ export function clearAttachments() {
   urls.clear()
 }
 
+/** Pixel size of an image file, or undefined when the browser can't tell. */
+async function imageSize(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const size = { w: bitmap.width, h: bitmap.height }
+    bitmap.close()
+    return size
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Encrypt and upload a file; returns the Markdown that shows it. Images the app can
  * display go inline, everything else becomes a link that downloads the file.
+ * Aborting `signal` cancels the upload and throws an AbortError; a blob that may have
+ * reached the server is deleted.
  */
-export async function uploadAttachment(dek: CryptoKey, file: File): Promise<string> {
+export async function uploadAttachment(
+  dek: CryptoKey,
+  file: File,
+  opts?: { onProgress?: (fraction: number) => void; signal?: AbortSignal },
+): Promise<string> {
   if (file.size > MAX_ATTACHMENT_BYTES) throw new AttachmentError('size')
   const id = crypto.randomUUID()
   const bytes = new Uint8Array(await file.arrayBuffer())
   const label = (text: string) => text.replace(/[[\]\n\r]/g, ' ').trim()
-  if (isImage(file.type)) {
-    await api.putBlob(id, await encryptBlob(dek, id, bytes, file.type))
-    urls.set(id, Promise.resolve(URL.createObjectURL(file))) // no need to download what we just sent
-    return `![${label(file.name.replace(/\.[^.]+$/, '')) || 'image'}](${attachmentUrl(id)})`
+  const image = isImage(file.type)
+  const blob = image ? await encryptBlob(dek, id, bytes, file.type) : await encryptBlob(dek, id, bytes, file.type || 'application/octet-stream', file.name)
+  const aborted = () => new DOMException('Aborted', 'AbortError')
+  try {
+    await api.putBlob(id, blob, opts)
+  } catch (err) {
+    if (opts?.signal?.aborted) void api.deleteBlob(id).catch(() => {})
+    throw err
   }
-  await api.putBlob(id, await encryptBlob(dek, id, bytes, file.type || 'application/octet-stream', file.name))
+  if (opts?.signal?.aborted) {
+    void api.deleteBlob(id).catch(() => {})
+    throw aborted()
+  }
+  if (image) {
+    const size = await imageSize(file)
+    urls.set(id, Promise.resolve(URL.createObjectURL(file))) // no need to download what we just sent
+    return `![${label(file.name.replace(/\.[^.]+$/, '')) || 'image'}](${attachmentUrl(id, size)})`
+  }
   return `[${label(file.name) || 'file'} (${formatBytes(file.size)})](${attachmentUrl(id)})`
 }
 
@@ -129,31 +206,35 @@ export const AttachmentsContext = createContext<AttachmentsState | null>(null)
 export const useAttachments = () => useContext(AttachmentsContext)
 
 /** An attachment inside rendered Markdown. */
-export function AttachmentImage({ id, alt }: { id: string; alt?: string }) {
-  const { t } = useI18n()
+export function AttachmentImage({ id, alt, width, height }: { id: string; alt?: string; width?: number; height?: number }) {
   const dek = useAttachments()?.dek
-  const [state, setState] = useState<{ url?: string; failed?: boolean }>({})
+  const [state, setState] = useState<{ url?: string; failure?: ImageFailure }>({})
+  const [attempt, setAttempt] = useState(0)
+  const retry = () => setAttempt((n) => n + 1)
 
   useEffect(() => {
-    if (!dek) return setState({ failed: true })
+    if (!dek) return setState({ failure: 'undecryptable' })
     let live = true
     setState({})
     attachmentObjectUrl(dek, id).then(
       (url) => live && setState({ url }),
-      () => live && setState({ failed: true }),
+      (err) => live && setState({ failure: err instanceof ImageLoadError ? err.reason : 'network' }),
     )
     return () => {
       live = false
     }
-  }, [dek, id])
+  }, [dek, id, attempt])
 
-  if (state.url) return <img src={state.url} alt={alt ?? ''} draggable={false} />
-  return (
-    <span className="inline-block rounded bg-foreground/[0.07] px-2 py-1 text-xs text-muted-foreground" role={state.failed ? undefined : 'status'}>
-      {state.failed ? t('att.unavailable') : t('att.loading')}
-      {alt ? ` · ${alt}` : ''}
-    </span>
-  )
+  // Offline: load again as soon as the connection is back.
+  const offline = state.failure === 'offline'
+  useEffect(() => {
+    if (!offline) return
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [offline])
+
+  if (state.url) return <img src={state.url} alt={alt ?? ''} draggable={false} width={width} height={height} />
+  return <ImagePlaceholder state={state.failure ?? 'loading'} alt={alt} width={width} height={height} onRetry={retry} />
 }
 
 /**

@@ -43,7 +43,8 @@ flowchart LR
 | `src/lib/notes.ts` | React hook that connects the UI to NoteSync |
 | `src/lib/importMarkdown.ts`, `importKeep.ts`, `importEvernote.ts`, `importSimplenote.ts`, `importStandardNotes.ts` | Turn dropped folders and files (Markdown, Google Keep, Evernote, Simplenote, Standard Notes exports) into notes |
 | `src/lib/exportNotes.ts`, `zip.ts` | Markdown export, encrypted backup and restore |
-| `src/lib/attachments.tsx` | Encrypted attachments (images and files): upload, decrypt, render, download |
+| `src/lib/attachments.tsx` | Encrypted attachments (images and files): upload with progress, decrypt, render, download. Image links may end with `#w=<width>&h=<height>`, which reserves the box before the image loads; a failed load says why (offline, deleted, storage off, can't decrypt, network) |
+| `src/components/ImagePlaceholder.tsx` | The box shown for an image that is loading, uploading or failed |
 | `src/lib/highlight.ts` | Languages bundled for code highlighting |
 | `src/lib/reorder.ts` | Positions for drag-and-drop ordering |
 | `src/sw/sw.js` | Service worker; the Vite plugin in `vite.config.ts` fills in its precache list |

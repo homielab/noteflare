@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import worker from '../worker/index'
 import { createVault, decryptBlob, encryptBlob } from '../src/lib/crypto'
-import { attachmentDownloadName, attachmentExportName, attachmentIdOf, attachmentIds, rewriteAttachments } from '../src/lib/attachments'
+import {
+  attachmentDownloadName,
+  attachmentExportName,
+  attachmentIdOf,
+  attachmentIds,
+  attachmentSize,
+  attachmentUrl,
+  loadImage,
+  rewriteAttachments,
+} from '../src/lib/attachments'
+import { ApiError } from '../src/lib/api'
 import { markdownEntries } from '../src/lib/exportNotes'
 import { emptyNote } from '../src/lib/noteModel'
 import { MAX_ATTACHMENT_BYTES } from '../shared/types'
@@ -180,5 +190,70 @@ describe('attachment routes', () => {
     expect((await call(env('me@example.com'), 'PUT', ID_A, bytes('x'))).status).toBe(501)
     expect((await call(env('me@example.com'), 'GET', ID_A)).status).toBe(501)
     expect((await call(env('', bucket()), 'GET', ID_A)).status).toBe(401)
+  })
+})
+
+describe('why an image did not load', () => {
+  const online = (v: boolean) => () => v
+  const failing = (err: unknown, on = true) => ({ getBlob: () => Promise.reject(err), online: online(on) })
+
+  it('tells deleted, storage off, server errors and offline apart', async () => {
+    const { dek } = await createVault('passphrase')
+    await expect(loadImage(dek, ID_A, failing(new ApiError(404, { error: 'not_found' })))).rejects.toMatchObject({ reason: 'deleted' })
+    await expect(loadImage(dek, ID_A, failing(new ApiError(501, { error: 'attachments_disabled' })))).rejects.toMatchObject({ reason: 'disabled' })
+    await expect(loadImage(dek, ID_A, failing(new ApiError(500, null)))).rejects.toMatchObject({ reason: 'network' })
+    await expect(loadImage(dek, ID_A, failing(new TypeError('Failed to fetch'), false))).rejects.toMatchObject({ reason: 'offline' })
+    await expect(loadImage(dek, ID_A, failing(new TypeError('Failed to fetch'), true))).rejects.toMatchObject({ reason: 'network' })
+  }, 30_000)
+
+  it('reports a blob it cannot read or show as undecryptable, and loads a good image', async () => {
+    const { dek } = await createVault('passphrase')
+    const other = (await createVault('another passphrase entirely')).dek
+    const serve = (blob: Uint8Array) => ({ getBlob: () => Promise.resolve(blob), online: online(true) })
+    await expect(loadImage(dek, ID_A, serve(await encryptBlob(other, ID_A, bytes('x'), 'image/png')))).rejects.toMatchObject({ reason: 'undecryptable' })
+    await expect(loadImage(dek, ID_A, serve(await encryptBlob(dek, ID_A, bytes('x'), 'application/pdf', 'a.pdf')))).rejects.toMatchObject({
+      reason: 'undecryptable',
+    })
+    expect((await loadImage(dek, ID_A, serve(await encryptBlob(dek, ID_A, bytes('PNG'), 'image/png')))).type).toBe('image/png')
+  }, 60_000)
+})
+
+describe('attachment links with a size fragment', () => {
+  const plain = `/api/blobs/${ID_A}`
+
+  it('reads the same id with and without the fragment, and rejects other paths', () => {
+    expect(attachmentIdOf(`${plain}#w=800&h=600`)).toBe(ID_A)
+    expect(attachmentIdOf(plain)).toBe(ID_A)
+    expect(attachmentIdOf(`${plain}#w=800&h=600&t=abc`)).toBe(ID_A)
+    expect(attachmentIdOf(`/api/blobs/${ID_A}/extra#w=1`)).toBeNull()
+  })
+
+  it('reads the size only when both sides are valid whole numbers', () => {
+    expect(attachmentSize(`${plain}#w=800&h=600`)).toEqual({ w: 800, h: 600 })
+    expect(attachmentSize(`${plain}#h=600&w=800&t=abc`)).toEqual({ w: 800, h: 600 })
+    for (const bad of [plain, `${plain}#w=0&h=600`, `${plain}#w=abc&h=1`, `${plain}#w=800`, `${plain}#w=1.5&h=2`, `${plain}#w=100001&h=2`])
+      expect(attachmentSize(bad)).toBeNull()
+  })
+
+  it('round-trips through attachmentUrl', () => {
+    const url = attachmentUrl(ID_A, { w: 800, h: 600 })
+    expect(attachmentIdOf(url)).toBe(ID_A)
+    expect(attachmentSize(url)).toEqual({ w: 800, h: 600 })
+    expect(attachmentUrl(ID_A)).toBe(plain)
+  })
+
+  it('lists, rewrites, cleans up and exports the same with or without it', () => {
+    const body = `![a](${plain}#w=800&h=600)\n![b](/api/blobs/${ID_B})\n![a again](${plain})`
+    expect(attachmentIds(body)).toEqual([ID_A, ID_B])
+    expect(rewriteAttachments(`![a](${plain}#w=800&h=600)`, () => 'a.png')).toBe('![a](a.png)')
+    const unused = (deleted: string, other: string) => {
+      const used = new Set(attachmentIds(other))
+      return attachmentIds(deleted).filter((id) => !used.has(id))
+    }
+    expect(unused(`![a](${plain}#w=1&h=1)`, `![a](${plain})`)).toEqual([])
+    expect(unused(`![a](${plain})`, `![a](${plain}#w=1&h=1)`)).toEqual([])
+    expect(unused(`![a](${plain}#w=1&h=1)`, 'nothing')).toEqual([ID_A])
+    const file = markdownEntries([{ ...emptyNote(), title: 'N', body: `![a](${plain}#w=800&h=600)` }], 'NoteFlare', new Map([[ID_A, 'x.png']]))
+    expect(text(file[0].data)).toContain('![a](attachments/x.png)')
   })
 })
