@@ -1,9 +1,13 @@
 name: CI
 
+# Docs-only changes need no check. Pull requests come from branches, so a commit runs once:
+# on its pull request, or on main.
 on:
   push:
     branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'examples/**', 'LICENSE']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**', 'examples/**', 'LICENSE']
 
 permissions:
   contents: read
@@ -15,16 +19,21 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
       - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun run test
+      # Only the tests whose failure loses notes or locks people out; the full suite
+      # (`bun run test`) runs locally before a release. See CONTRIBUTING.md.
+      - run: bun run test:critical
       - run: bun run build
       - run: bun run build:client

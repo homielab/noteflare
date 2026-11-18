@@ -40,7 +40,19 @@ bun run build
 bun run build:client
 ```
 
-CI runs the same four commands.
+CI runs the type-check, both builds and `bun run test:critical`: only the tests whose failure would lose notes or lock someone out. The full suite (`bun run test`, a few seconds) is yours to run before a pull request, and runs before every release. A change to docs alone (`*.md`, `docs/`, `examples/`) skips CI.
+
+| Critical test file | A failure means |
+| --- | --- |
+| `crypto`, `passkeys` | Notes can't be decrypted, or are readable by the server |
+| `sync`, `merge` | Edits are lost or overwritten between devices or offline |
+| `auth`, `setup`, `tokens` | Someone else gets in, or the owner is locked out; API clients break |
+| `shares` | A shared link leaks more than its note, or outlives its expiry |
+| `backups`, `export` | A backup or export can't be restored |
+| `attachments` | Images and files are lost, or served to someone else |
+| `selfUpdate` | Updating from the app fails |
+
+A new test file joins `test:critical` in `package.json` only when it guards one of these.
 
 - **Keep pull requests focused.** One fix or feature per PR is easier to review and to revert.
 - **Add a test** for logic changes, especially in crypto, sync, merge, import or the API. Tests live in `tests/` and run with Vitest; sync tests use `fake-indexeddb`.
@@ -75,7 +87,7 @@ bun run release -- patch          # or minor, major, or an exact version; add --
 git commit -am "chore: release vX.Y.Z" && git tag vX.Y.Z && git push && git push origin vX.Y.Z
 ```
 
-`bun run release` moves the Unreleased notes under a dated heading and bumps the version in every package. Pushing the tag runs the Release workflow, which checks, builds and publishes a GitHub release with the same notes. Deployments then see the update in **About and updates**, and the app shows the notes after users update.
+`bun run release` moves the Unreleased notes under a dated heading and bumps the version in every package. Run `bun run test` first. Pushing the tag runs the Release workflow, which waits for CI on that commit, refuses to go on unless it passed, and publishes a GitHub release with the same notes. Deployments then see the update in **About and updates**, and the app shows the notes after users update.
 
 NoteFlare follows semantic versioning; before 1.0, minor versions may include breaking changes, which the changelog calls out.
 

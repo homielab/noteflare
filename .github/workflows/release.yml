@@ -9,35 +9,55 @@ permissions:
   contents: read
 
 jobs:
+  # CI already checked this commit (typecheck, critical tests, build): reuse its result
+  # instead of running it all again. No CI run, or a failed one, stops the release.
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run test
-      - run: bun run build
+      - name: CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 80); do
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --limit 1 --json status,conclusion,url --jq '.[0] | select(.) | "\(.status) \(.conclusion) \(.url)"')
+            set -- $run
+            if [ "${1:-}" = "completed" ]; then
+              if [ "$2" = "success" ]; then
+                echo "CI passed: $3"
+                exit 0
+              fi
+              echo "::error::CI ended with '$2' on $GITHUB_SHA ($3). Fix it or run it again, then push the tag again."
+              exit 1
+            fi
+            # A tag pushed together with its commit: CI may not have started or finished yet.
+            if [ -z "$run" ] && [ "$attempt" -ge 12 ]; then
+              echo "::error::CI has not run on $GITHUB_SHA. Push the commit to main first; a commit that only changes docs skips CI and can't be released."
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "::error::CI is still running on $GITHUB_SHA after 13 minutes. Run this workflow again when it has finished."
+          exit 1
 
-  # Only this job can write, and it installs nothing: the notes script uses Node alone,
+  # Only this job can write, and it installs no dependency: the notes script uses Node alone,
   # so a compromised dependency never runs with a token that can publish.
   publish:
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # The notes script imports a .ts file, which needs a Node that strips types (22.18 or newer).
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
       - name: Release notes from CHANGELOG.md
         run: node scripts/release-notes.mjs "$GITHUB_REF_NAME" > release-notes.md
       - name: Publish GitHub release
