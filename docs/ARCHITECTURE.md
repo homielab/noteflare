@@ -85,7 +85,7 @@ POST requests must be `application/json`, which blocks simple cross-site form po
 
 Shared links are the only public routes: `GET /s/<id>` serves a self-contained page (inline script and style under a nonce CSP, no app code) that fetches `GET /api/share/<id>` and decrypts it with the key from the fragment. The web app manages links through `/api/shares` (session only). A link stops working when revoked, expired, or when its note is trashed or deleted.
 
-In production Cloudflare Access sits in front of the whole Worker. For `/api/v1` you either add a Bypass policy (the token is then the only gate) or use Access service tokens; the README covers both.
+In production Cloudflare Access sits in front of the whole Worker. For `/api/v1` you either add a Bypass policy (the token is then the only gate) or use Access service tokens; the [API guide](API.md) covers both.
 
 ## Sync
 

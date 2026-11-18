@@ -11,7 +11,7 @@
 
 A simple, private, serverless notes app — end-to-end encrypted, completely free to run, and yours to customize.
 
-[English](README.md) · [Tiếng Việt](README.vi.md)
+[Documentation](https://noteflare.homielab.com) · [English](README.md) · [Tiếng Việt](README.vi.md)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/homielab/noteflare)
 
@@ -77,113 +77,42 @@ A simple, private, serverless notes app — end-to-end encrypted, completely fre
   <img src="docs/offline-mobile.png" width="280" alt="Editing offline on a phone: the header shows one unsynced change" />
 </p>
 
-## 📥 Import your Markdown
+## 🚀 Get started
 
-Drag a folder (or a few `.md` files) anywhere onto NoteFlare, or use **Account → Import a Markdown folder…**.
-Files are read and encrypted in your browser and uploaded in batches. Try it with [`examples/sample-notes`](examples/sample-notes).
+You need a free Cloudflare account and a free GitHub account. No coding, about 10 minutes.
 
-- **Title**: `title` in YAML frontmatter, else the first `# Heading`, else the file name
-- **Labels**: `tags` from frontmatter (Obsidian style works) plus the sub-folder the file lives in
-- **Also read**: `color`, `pinned`, `archived`
-- **Skipped**: `.obsidian`, `.git`, `node_modules`, non-Markdown files, and notes you already have (same title and body) — importing twice is safe
+1. **[Deploy in one click](https://noteflare.homielab.com/start/deploy/)**: click **Deploy to Cloudflare** above, type your email, and wait for the build.
+2. **[Set up the login](https://noteflare.homielab.com/start/access/)**: open your new NoteFlare link and paste a one-time Cloudflare API token. NoteFlare adds a Cloudflare Access login so only your email can open it.
+3. **[Create your passphrase](https://noteflare.homielab.com/start/first-run/)**: it encrypts your notes. Write down the recovery code.
 
-**From Google Keep**: export Keep with [Google Takeout](https://takeout.google.com/), unzip it, and drop the `Keep` folder (or use **Account → Import from Google Keep…**). Titles, text, checklists, labels, colors, pinned and archived come across; notes in Keep's trash and attachments (images, audio) do not.
+Watch every step first: [3-minute video with narration](https://noteflare.homielab.com/start/deploy/).
 
-**From Evernote, Simplenote or Standard Notes**: drop the export file onto NoteFlare, or use **Account → Import from Evernote, Simplenote, Standard Notes…**.
-- **Evernote**: File → Export notes as `.enex`. Title, text, checklists and tags come across; attachments do not.
-- **Simplenote**: Settings → Export notes, unzip it and drop `notes.json`. Tags and pinned come across; the trash is skipped.
-- **Standard Notes**: Backups → download a decrypted backup, then drop the .zip (or the .txt inside it). Notes, tags, pinned and archived come across; encrypted backups can't be read.
-
-## 📤 Export and backup
-
-**Account → Export and backup…** gives you three things:
-
-- **Markdown (.zip)**: one readable `.md` file per note, with frontmatter, plus any attached images and files. It imports back into NoteFlare or opens in any Markdown editor. It is **not encrypted**, so keep it somewhere safe.
-- **Encrypted backup**: one `.json` file with your notes exactly as the server stores them, still encrypted. It is useless without your passphrase. The trash and attached images and files are left out.
-- **Restore**: pick an encrypted backup and its notes are added to your notebook; notes you already have are skipped. A backup from another deployment, or from before a recovery-code reset, asks for the passphrase that was in use when it was made.
-
-With the R2 binding on (see Images and files), NoteFlare also saves an encrypted backup every day and keeps the last 14. They are listed under **Daily backups** in the same dialog; restore one from there.
-
-## 🖼️ Images and files
-
-Notes can carry images and any other file (a PDF, a spreadsheet, a zip), encrypted like everything else. This is off by default because it needs an R2 bucket, and R2 asks for a payment method even on its free 10 GB.
-
-To turn it on, uncomment the `r2_buckets` line in `wrangler.jsonc` and deploy; the bucket is created for you. Then **Attach a file** appears in the editor, and you can also drop files or paste an image into a note. Images show inside the note; any other file shows as a chip with its name and size, and a click downloads it.
-
-- Everything is encrypted in your browser with your data key before upload. The server stores opaque blobs and never learns the content, the file name or the file type.
-- Any file type, up to 10 MB each. PNG, JPEG, GIF, WebP and AVIF images are shown in the note.
-- Deleting a note forever also deletes the attachments only it used. Notes purged from the trash after 30 days leave their attachments in the bucket.
-- Images need a connection the first time each device shows them, and files each time you download them.
-
-## 🔗 Share a note by link
-
-Open a note's menu and choose **Share link**. Pick how long the link works (1 day, 7 days, 30 days or never), then **Create link**: it is copied for you. Anyone with the link can read the note in any browser, without signing in.
-
-- The link holds a copy of the note's title and text as they are now. Later edits, labels, colors and images are not shared.
-- The note is encrypted in your browser with a new key for each link. The key is the part after `#`, which browsers never send to a server, so your server only stores ciphertext. Anyone who has the whole link can read the note, so send it only to people you trust.
-- **Share link** also lists the note's active links; revoke one there. Moving the note to the trash revokes all its links, and expired links are deleted every night.
-- Only the share page (`/s/…`) and its data (`/api/share/…`) are public; the rest of NoteFlare stays behind Cloudflare Access. The in-app setup opens them for you; if you set up Access by hand, see step 8 below.
-
-## 📱 Install on your phone, use it offline
-
-NoteFlare is a Progressive Web App. Open your NoteFlare URL and sign in once, then:
-
-- **Android (Chrome)**: *Account menu → Install app*, or Chrome's menu → *Install app*
-- **iPhone / iPad (Safari)**: *Share → Add to Home Screen* (*Account menu → Install app* shows the steps)
-- **Desktop (Chrome, Edge)**: the install icon in the address bar, or *Account menu → Install app*
-
-**What works offline**: opening the app, unlocking with your passphrase or a passkey, reading, searching, writing, editing, pinning, archiving, deleting and importing. The header shows *Offline · N unsynced* until everything has reached your Worker. Setting up a new account and recovering with a recovery code need a connection.
-
-**Once installed**:
-
-- **Share to NoteFlare** from other apps (Android): shared text and links become a new note, saved as soon as you unlock.
-- **Open `.md` files with NoteFlare** (desktop Chrome and Edge): they're encrypted and imported like a dropped folder.
-- **New note** from the app icon's shortcut menu.
-- Launching it again focuses the window you already have open, so you don't have to unlock twice.
-- When a new version is deployed, NoteFlare offers to reload rather than switching underneath you.
-
-**How it works**: a service worker caches the app itself. Your notes are cached by the app in IndexedDB — as the same ciphertext the server stores, plus the wrapped keys — so the device copy is just as unreadable without your passphrase. Edits go into a queue on the device and are pushed in order when a connection is available.
-
-### What happens when two devices edit the same note
-
-Every note has a version number. When a device pushes an edit built on an older version, the server refuses it, and the device merges the two edits from the version both started at:
-
-| Device A | Device B | Result |
-|---|---|---|
-| Ticks the first item | Adds an item at the end | One note with both changes |
-| Rewrites line 2 | Deletes line 5 | Both changes applied |
-| Adds labels `work` | Adds label `q4`, removes `old` | `work`, `q4` — `old` removed |
-| Renames the note to "A" | Renames it to "B" | Server copy kept, your edit saved as **"… (conflict copy)"** |
-| Changes line 3 to "oat milk" | Changes line 3 to "soy milk" | Same: nothing is lost, you pick which to keep |
-
-Merging happens in the browser on decrypted text; the server never sees note content. Colors, pin and archive never cause a copy: the edit from the device that syncs later wins.
-
-### Tips for Cloudflare Access on phones
-
-- An app added to the iPhone home screen keeps its own cookies, separate from Safari, so you sign in once inside the app.
-- Access sessions last 24 hours by default. For a notes app you open every day, raise **Session Duration** on the Access application (e.g. 1 week or 1 month). When a session expires, NoteFlare keeps working on the device copy and shows *Sign in to sync*.
-- If your browser doesn't offer to install the app, or the home-screen icon is blank, the browser may be fetching the icons without your Access cookie. Add a second Access application for the paths `/manifest.webmanifest` and `/icons/` with a **Bypass** policy (they contain only the app name and icons).
-
-## 🔌 Integrations and API
-
-Connect scripts, editor plugins, browser extensions or your own apps. Create a token under **Account → Integrations** (read-only or read-and-write, with an expiry), then:
-
-```ts
-import { NoteFlareClient } from '@noteflare/client'
-
-const nf = new NoteFlareClient({ url: 'https://notes.example.com', token: 'nf_…' })
-await nf.unlock(passphrase)                       // decryption stays on your side
-await nf.create({ title: 'From my script', body: '- [ ] it works' })
-```
+Prefer a terminal, or want an AI agent to do it? See [Deploy from the command line](https://noteflare.homielab.com/start/command-line/):
 
 ```bash
-echo "- [ ] Pack a jacket" | noteflare append "trip"     # the CLI in packages/cli
-noteflare export ./backup                                 # Markdown you can re-import
+bun install
+bunx wrangler login
+bun run deploy   # build → deploy the Worker (creates D1) → apply migrations
 ```
 
-`noteflare mcp` lets Claude, Cursor and other AI tools read and write your notes, decrypted on your computer: see [MCP server](docs/API.md#mcp-server-ai-tools).
+Updating later takes one click: [Update to a new version](https://noteflare.homielab.com/start/update/). Something went wrong? Check the [FAQ](https://noteflare.homielab.com/reference/faq/).
 
-Tokens reach only the encrypted copy: a client still needs your passphrase to read anything. Each IP address can make 60 token requests a minute; past that the API answers `429` (change it under `ratelimits` in `wrangler.jsonc`). The **[API guide](docs/API.md)** covers the endpoints, syncing, conflict handling, Cloudflare Access setup for `/api/v1`, and the exact encryption format with a Python example — so clients can be written in any language. The OpenAPI spec is served at `/api/v1/openapi.json`.
+## 📖 Guides
+
+Everything is in the **[NoteFlare docs](https://noteflare.homielab.com)** (English and Tiếng Việt).
+
+| Guide | What it covers |
+| --- | --- |
+| [Import your notes](https://noteflare.homielab.com/guides/import/) | Markdown folders, Obsidian vaults, Google Keep, Evernote, Simplenote, Standard Notes |
+| [Export and backup](https://noteflare.homielab.com/guides/export-backup/) | Markdown export, encrypted backups, daily backups, restore |
+| [Images and files](https://noteflare.homielab.com/guides/images/) | Turn on encrypted attachments in your own R2 bucket |
+| [Share a note by link](https://noteflare.homielab.com/guides/share/) | Read-only links that expire, with the key only in the link |
+| [Install on your phone, use offline](https://noteflare.homielab.com/guides/install-offline/) | Install the app, what works offline, Access tips for phones |
+| [Sync between devices](https://noteflare.homielab.com/guides/sync/) | How edits from two devices are merged |
+| [Integrations and API](https://noteflare.homielab.com/guides/integrations/) | Access tokens, the TypeScript SDK, the CLI, the MCP server for AI tools |
+| [Customize](https://noteflare.homielab.com/guides/customize/) | Which file to edit for colors, languages, timings and more |
+| [Free-tier budget](https://noteflare.homielab.com/reference/free-tier/) | How NoteFlare stays within Cloudflare's free plan |
+| [Hardening checklist](https://noteflare.homielab.com/reference/hardening/) | Lock down your deployment |
 
 ## 🔐 How the encryption works
 
@@ -195,223 +124,23 @@ random 256-bit DEK ──AES-GCM, AAD = "note:<id>"──► note ciphertext    
                    ──AES-GCM, AAD = "blob:<id>"──► attachment ciphertext (R2, optional)
 ```
 
-- Your passphrase, the data key (DEK) and note content never leave the browser unencrypted. Titles, bodies, labels and colors are all inside the ciphertext; only `pinned`, `archived`, `trashed_at`, `position` and timestamps are plaintext so notes can be sorted.
-- **Passkeys** (Account → Unlock with passkey…): the WebAuthn PRF extension gives the browser a secret that only that passkey can produce, after Face ID, Touch ID or a PIN. It wraps one more copy of the DEK. The server stores that copy and the PRF salt, never the secret. Removing a passkey deletes its copy; the passphrase and recovery code keep working, and a changed passphrase doesn't affect passkeys. It needs a browser and passkey provider with PRF (recent Chrome, Edge and Safari with iCloud Keychain, Google Password Manager or Windows Hello); elsewhere the option is hidden.
-- In a session the DEK is a **non-extractable** `CryptoKey` kept in memory only. Locking discards it.
-- The offline copy on your device holds the same ciphertext and wrapped keys as the server. Signing out deletes it.
-- Each note's ciphertext is bound to its id, so the server can't swap content between notes.
-- The client rejects Argon2 parameters below a safe floor, so a malicious server can't downgrade the KDF.
-- The Worker verifies the Cloudflare Access JWT itself (signature, issuer, audience) instead of trusting headers.
-- A strict CSP ships in `public/_headers`; TanStack Markdown escapes raw HTML and drops executable URLs by default.
+- Your passphrase, the data key (DEK) and note content never leave the browser unencrypted. Titles, bodies, labels and colors are all inside the ciphertext.
+- In a session the DEK is a non-extractable `CryptoKey` kept in memory only. Locking discards it.
+- The Worker verifies the Cloudflare Access JWT itself instead of trusting headers, and the client refuses weak Argon2 parameters, so a malicious server can't downgrade the KDF.
+
+Full details: [Encryption](https://noteflare.homielab.com/concepts/encryption/) and [Architecture](https://noteflare.homielab.com/concepts/architecture/).
 
 ## 🧱 Tech stack
 
-- **Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) with [Static Assets](https://developers.cloudflare.com/workers/static-assets/) and a Cron Trigger
+- **Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) with [Static Assets](https://developers.cloudflare.com/workers/static-assets/), a Cron Trigger and Durable Objects for live sync
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)
 - **Auth**: [Cloudflare Access](https://www.cloudflare.com/zero-trust/products/access/), verified with [jose](https://github.com/panva/jose)
 - **API**: [Hono](https://hono.dev/)
 - **UI**: [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [lucide](https://lucide.dev/), View Transitions API
 - **Markdown**: [TanStack Markdown](https://github.com/TanStack/markdown), with [TanStack Highlight](https://github.com/TanStack/highlight) for code
-- **Images** (optional): [Cloudflare R2](https://developers.cloudflare.com/r2/)
+- **Attachments** (optional): [Cloudflare R2](https://developers.cloudflare.com/r2/)
 - **Crypto**: WebCrypto + [hash-wasm](https://github.com/Daninet/hash-wasm) (Argon2id)
 - **Offline**: a Service Worker for the app shell, IndexedDB via [idb](https://github.com/jakearchibald/idb) for encrypted notes and the sync queue
-
-## 🏗️ Deploy
-
-### One click (no coding needed)
-
-Watch every step first: [3-minute video with narration](https://noteflare.homielab.com/start/deploy/).
-
-You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account and a free [GitHub](https://github.com/signup) account. It takes about 10 minutes, most of it waiting for the first deploy.
-
-**Part 1: Deploy the app**
-
-1. Click the **Deploy to Cloudflare** button at the top of this page and sign in to Cloudflare.
-2. Under **Git account**, connect your GitHub account (**New GitHub connection**, then **Authorize** and **Install & Authorize** on GitHub) and pick it. Tick **Create private Git repository**.
-
-   If Cloudflare shows *Select a repository* after connecting GitHub, click the Deploy to Cloudflare button again: your account is now in the list.
-3. Fill in the form. Only one field needs typing:
-
-   | Field | What to do |
-   | --- | --- |
-   | `ALLOWED_EMAILS` | Type your own email address. |
-   | Everything else | Keep it as it is (`ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` stay `todo`). |
-
-4. Click **Deploy** and wait until the build finishes (about a minute).
-5. Open **Overview** and click **Visit** (the link looks like `noteflare.<your-subdomain>.workers.dev`; if it says *No URLs enabled*, reload the page). NoteFlare shows **Finish setting up NoteFlare**.
-
-**Part 2: Set up the login**
-
-NoteFlare puts a Cloudflare Access login in front of itself, so only your email can open it. Access is free for up to 50 people.
-
-1. Click **Create token in Cloudflare**. The permissions NoteFlare needs are already selected: click **Continue to summary**, then **Create Token**, and copy the token.
-2. Back in NoteFlare, paste the token, check your email address, and click **Set up the login**.
-3. Click **Sign in** and enter the code Cloudflare emails you.
-4. Delete the token in Cloudflare (**My Profile → API Tokens**). NoteFlare used it once and did not keep it.
-
-The token only works for the Cloudflare account NoteFlare runs in, so nobody else can finish the setup for you. Prefer to click through Zero Trust yourself? See [Set up Cloudflare Access by hand](#set-up-cloudflare-access-by-hand).
-
-**Part 3: Create your passphrase**
-
-1. Choose a passphrase. This is what encrypts your notes.
-2. Write down the **recovery code** and keep it somewhere safe, away from your passphrase.
-
-### With an AI agent
-
-Have a coding agent with terminal access (Claude Code, Codex, Gemini CLI…) deploy it for you. First create a deploy token: Cloudflare dashboard → **My Profile → API Tokens → Create Token → Create Custom Token**, with these permissions:
-
-| Permission | Why |
-| --- | --- |
-| Account → **Workers Scripts** → Edit | Upload the Worker, its files and its daily trash cleanup, and turn on its `workers.dev` link |
-| Account → **D1** → Edit | Create the `noteflare` database and apply its migrations |
-| Account → **Workers R2 Storage** → Edit | Only if you turned on attachments in `wrangler.jsonc` |
-
-Limit **Account Resources** to your account. Your account ID is on the dashboard home page (**Account ID**, under the account menu). Then clone this repository, open the agent in its folder and paste:
-
-```text
-Deploy NoteFlare from this folder to my Cloudflare account.
-
-1. Read README.md, docs/ARCHITECTURE.md and wrangler.jsonc first.
-2. I need Bun (https://bun.sh) and Node 20+. Check `bun --version` and `node --version`; tell me if one is missing.
-3. Ask me to create a file named `.env` in this folder myself, with these two lines:
-   CLOUDFLARE_ACCOUNT_ID=<my account ID>
-   CLOUDFLARE_API_TOKEN=<my deploy token>
-   Never ask me to paste the token in the chat, never print, log or commit it, and never pass it as a command argument. `.env` is in .gitignore and Wrangler reads it on its own; check that `git status` does not list it.
-4. Keep the Worker name `noteflare` and the database name `noteflare`. Do not change any other value in wrangler.jsonc.
-5. Run `bun install`, then `bun run deploy` (build, deploy the Worker and create the D1 database, apply migrations). If it fails, show me the error and how to fix it.
-6. Give me the `https://noteflare.<subdomain>.workers.dev` link from the deploy output. Tell me to open it and finish on the "Finish setting up NoteFlare" screen (README, Deploy, Part 2 and Part 3), then delete `.env` and the deploy token.
-```
-
-### Command line
-
-Requires [Bun](https://bun.sh), Node 20+ and a Cloudflare account.
-
-```bash
-bun install
-bunx wrangler login
-bun run deploy   # build → deploy the Worker (creates D1) → apply migrations (including new ones on upgrade)
-```
-
-Then open the link and follow Part 2 above.
-
-### Set up Cloudflare Access by hand
-
-Instead of the in-app setup in Part 2:
-
-1. In the [Cloudflare dashboard](https://dash.cloudflare.com), open **Zero Trust**. The first time, it asks you to pick a team name and the Free plan. Remember the team name.
-2. Go to **Access controls → Applications → Create new application → Self-hosted and private**.
-   - Name: `NoteFlare`
-   - Select **Add public hostname** and enter your NoteFlare address, e.g. `notes.example.com` or `noteflare.<your-subdomain>.workers.dev`
-
-   For a `workers.dev` link you can also turn Access on in **Workers & Pages → noteflare → Settings → Domains & Routes**.
-3. Add a policy: *Allow* → *Emails* → your email address. Save the application. Login by emailed one-time code works right away; Google or GitHub login also work.
-4. Copy the **Application Audience (AUD) Tag**: in **Access controls → Applications**, select **Edit** on NoteFlare, open **Additional settings**, and copy the value (a long string of letters and numbers).
-5. Put both values into `wrangler.jsonc` in place of `todo`. If you used the one-click button, open your new `noteflare` repository on GitHub, open `wrangler.jsonc`, click the pencil icon, and edit these lines:
-
-   ```jsonc
-   "vars": {
-     "ACCESS_TEAM_DOMAIN": "https://<your-team>.cloudflareaccess.com",
-     "ACCESS_AUD": "<AUD tag>",
-     "ALLOWED_EMAILS": "you@example.com"   // optional second lock, checked by the Worker
-   }
-   ```
-
-6. Deploy again. On GitHub, click **Commit changes** and Cloudflare redeploys by itself in a few minutes. On the command line, run `bun run deploy`.
-7. Open your NoteFlare link. You should now see the Cloudflare login page, then NoteFlare.
-8. Optional, for [shared links](#-share-a-note-by-link): create a second self-hosted application named `NoteFlare shared links` with two public hostnames, your NoteFlare address with path `s` and with path `api/share`, and a policy with action **Bypass** and include **Everyone**. Without it, people you share a link with see the Cloudflare login page.
-
-Then run through the [hardening checklist](SECURITY.md#hardening-checklist-for-your-deployment).
-
-## 🔄 Update
-
-NoteFlare tells you when a new version is out: a badge appears on your avatar, and **About and updates** in the account menu shows the release notes. After you update, **What's new** lists what changed.
-
-The check runs on your Worker, not in your browser. It asks GitHub for the latest release of `homielab/noteflare` at most every 6 hours and sends nothing about you or your notes. Set `UPDATE_CHECK_REPO` in `wrangler.jsonc` to your fork's `owner/repo` to follow your own releases, or to `"off"` to turn it off.
-
-**Deployed with the button?** Cloudflare created a copy of this repo in your GitHub account and redeploys on every push. Updating takes one click, after a one-time setup.
-
-*Once: add the update button.* The Deploy button leaves this file out of your copy, so add it yourself:
-
-1. Open [`update.yml`](https://github.com/homielab/noteflare/blob/main/.github/workflows/update.yml) and copy its contents (the copy icon at the top right of the file).
-2. In **your** `noteflare` repository on GitHub, choose **Add file → Create new file**.
-3. Name it `.github/workflows/update.yml`, paste, and click **Commit changes**.
-
-*Each time: update.*
-
-1. In your repository, open the **Actions** tab and select **Update NoteFlare**.
-2. Click **Run workflow**, then **Run workflow** again.
-3. Cloudflare deploys the new version in a few minutes.
-
-*Optional: update from the app.* With two more settings, **About and updates** shows **Update now**, which runs the same workflow for you:
-
-1. On GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Give it a name and an expiry, choose **Only select repositories** and pick your `noteflare` repository, then under **Repository permissions** set **Actions** to **Read and write**. Generate it and copy it.
-2. In the Cloudflare dashboard, open **Workers & Pages → noteflare → Settings → Variables and Secrets** and add two values of type **Secret**: `GITHUB_UPDATE_TOKEN` with the token, and `GITHUB_UPDATE_REPO` with your repository as `owner/noteflare`.
-3. Reload NoteFlare. When a new version is out, click **Update now**; Cloudflare deploys it in a few minutes and NoteFlare offers to reload.
-
-The token stays in your Worker and is never sent to the browser. Only you, signed in through Cloudflare Access, can start an update; API tokens can't. The token can only run workflows in that one repository; delete it on GitHub to turn the button off.
-
-The update keeps the settings in your `wrangler.jsonc` (database id, Cloudflare Access values). If you changed the code yourself, your changes are kept where they don't overlap with the new version; where they do, the new version wins.
-
-Prefer a terminal? In a clone of your copy:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/homielab/noteflare/main/scripts/update-from-upstream.sh | bash
-git push                                                         # Workers Builds deploys it
-```
-
-**Deployed from the command line?**
-
-```bash
-git pull
-bun install
-bun run deploy   # also applies new database migrations
-```
-
-Your notes, keys and settings live in D1 and stay untouched; migrations only ever add to the schema. Read the [changelog](CHANGELOG.md) for anything marked **Breaking** before a minor-version update.
-
-## 🧑‍💻 Develop locally
-
-```bash
-cp dev.vars.sample .dev.vars     # DEV_USER_EMAIL=you@example.com — local only
-bun run db:migrate:local
-bun run dev:api                  # terminal 1: Worker + local D1 on :8787
-bun run dev                      # terminal 2: Vite on :5173, proxies /api
-bun run test                         # crypto, Access JWT, offline sync, merging, import, tokens
-bun run build:client             # build the SDK (packages/client)
-```
-
-`DEV_USER_EMAIL` is honored only while the Access variables are empty **and** the request is to `localhost`, so it can never open a deployed app. Still, don't set it in production.
-
-The service worker only exists in production builds. To try offline mode locally, run `bun run build && bun run dev:api` and open http://localhost:8787.
-
-## 💸 Free-tier budget
-
-| Service | Free allowance | How NoteFlare uses it |
-|---|---|---|
-| Workers | 100,000 requests/day | One request per save; saves are debounced (~0.7 s) |
-| D1 | 5M rows read, 100k rows written per day; 500 MB per database | Refreshes only fetch notes changed since the last sync |
-| Access | 50 users | One seat per person you let in |
-| Durable Objects | 100,000 requests/day (incoming WebSocket messages count 1 per 20) | One object per person keeps the sockets of their open devices; it holds no data |
-| R2 (optional) | 10 GB stored | Only if you turn on [images](#️-images); one object per image |
-
-Personal use stays far below these limits. If a D1 daily limit is ever hit, queries pause until 00:00 UTC — nothing is lost.
-
-## 🎨 Customize
-
-| Want to… | Edit |
-|---|---|
-| Restyle colors, fonts, note palette, motion | `src/index.css` — tokens at the top, motion at the bottom |
-| Edit UI text or add a language | `src/i18n/en.ts` (keys), add e.g. `fr.ts` and register it in `src/i18n/index.tsx` |
-| Tune encryption cost | `DEFAULT_KDF` in `packages/client/src/crypto.ts` |
-| Change auto-lock / autosave timing | `IDLE_LOCK_MS` in `src/lib/vault.tsx`, `DEBOUNCE_MS` in `src/lib/sync/engine.ts` |
-| Highlight more languages in code blocks | `src/lib/highlight.ts` |
-| Change how edits from two devices merge | `packages/client/src/merge.ts` (tested in `tests/merge.test.ts`) |
-| Change the app icon or install name | `public/icons/`, `public/manifest.webmanifest` |
-| Change trash retention | `TRASH_TTL_MS` in `worker/index.ts`, `triggers.crons` in `wrangler.jsonc` |
-| Add API routes | `worker/index.ts` (Hono); public ones also go in `worker/openapi.ts` and `docs/API.md` |
-| Change the encryption or wire format | `packages/client/src/` — shared by the web app, the Worker and the SDK |
-| Follow your fork's releases, or turn off update checks | `UPDATE_CHECK_REPO` in `wrangler.jsonc` |
-| Add UI components | `bunx shadcn@latest add <component>` |
 
 ## 🚗 Roadmap
 
@@ -426,35 +155,30 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), and open an 
 - [x] Installable app that works offline
 - [x] Automatic three-way merge across devices
 - [x] Public API, access tokens, TypeScript SDK and CLI
-- [x] Export to Markdown (CLI)
 - [x] Export from the web app, encrypted backup and restore
 - [x] Drag-and-drop reordering
 - [x] Encrypted image and file attachments on R2
-- [x] Google Keep Takeout import
+- [x] Google Keep, Evernote, Simplenote and Standard Notes import
 - [x] Code highlighting via TanStack Highlight
+- [x] Passkey unlock and shared links
 
 ## 🙋 FAQ
 
 **Can Cloudflare read my notes?** No. Notes are encrypted in your browser before they're sent; D1 only holds ciphertext and wrapped keys.
 
-**Can I script it or build my own app?** Yes. See [Integrations and API](#-integrations-and-api): tokens, a TypeScript SDK, a CLI, and a documented encryption format for other languages.
+**Is it really free?** On Cloudflare's free plan, yes. There's no paid service in the stack. See the [free-tier budget](https://noteflare.homielab.com/reference/free-tier/).
 
-**Is there a mobile app?** NoteFlare installs from the browser as an app (see [Install on your phone](#-install-on-your-phone-use-it-offline)) and works offline. There's no App Store build.
+**Is there a mobile app?** NoteFlare installs from the browser as an app and works offline. There's no App Store build.
 
-**What if I edit the same note on my phone and laptop?** Changes to different lines are merged automatically. If both devices changed the same line differently, you get both versions: the other device's in the note, yours in a "conflict copy" next to it.
+**I forgot my passphrase.** Use **Forgot passphrase?** on the lock screen with your recovery code. Without either, the data can't be decrypted, by design.
 
-**Why Cloudflare Access instead of a password login?** Access handles sign-in, MFA and sessions at Cloudflare's edge for free, so the app ships no auth code to get wrong. Your passphrase is a separate secret used only for encryption.
-
-**Is it really free?** On Cloudflare's free plan, yes, within the limits above. There's no paid service in the stack.
-
-**Can I bring my Obsidian vault?** Yes — drop the vault folder. Frontmatter tags become labels, sub-folders become labels, and `.obsidian/` is ignored. Wiki-links and embeds are kept as plain text.
-
-**I forgot my passphrase.** Use **Forgot passphrase?** on the lock screen with your recovery code. Without either, the data can't be decrypted — by design.
+More answers, including setup errors, in the [full FAQ](https://noteflare.homielab.com/reference/faq/).
 
 ## 📚 Documentation
 
 | Doc | For |
 | --- | --- |
+| [NoteFlare docs](https://noteflare.homielab.com) | Deploying, using, updating and customizing NoteFlare |
 | [API guide](docs/API.md) | Building scripts and apps on `/api/v1`, the SDK and the CLI |
 | [Architecture](docs/ARCHITECTURE.md) | How the Worker, D1, encryption and offline sync fit together |
 | [Security](SECURITY.md) | Threat model, what the server can see, reporting vulnerabilities |
