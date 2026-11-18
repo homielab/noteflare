@@ -351,6 +351,12 @@ export const en = {
   'imp.nothingNew': 'Nothing new to import — every note is already here.',
   'imp.error': 'Import failed. Check your connection and try again.',
   'imp.queued': '{n} saved on this device, will upload when you reconnect',
+  'imp.uploadingImages': 'Encrypting and uploading image {done} of {total}…',
+  'imp.imagesOff': '{n} images skipped: image storage is off',
+  'imp.imagesMissing': '{n} images not found in the export',
+  'imp.imagesTooLarge': '{n} images over 10 MB skipped',
+  'imp.imagesUnsupported': '{n} attachments of an unsupported type skipped',
+  'imp.imagesFailed': "{n} images couldn't be uploaded",
 
   'int.title': 'Integrations',
   'int.body': "Let scripts, the command line and other apps reach your notes with a token. A token only gets the encrypted copy — apps still need your passphrase to read anything.",

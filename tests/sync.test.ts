@@ -1,11 +1,12 @@
 import 'fake-indexeddb/auto'
 import { readFileSync } from 'node:fs'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BatchNoteItem, EncryptedNote, PutNoteBody } from '../shared/types'
 import { ApiError } from '../src/lib/api'
 import { decryptNote, encryptNote } from '../src/lib/crypto'
 import { emptyNote } from '../src/lib/noteModel'
 import { parseSimplenote } from '../src/lib/importSimplenote'
+import type { ParsedNote } from '../src/lib/importMarkdown'
 import { createLocalStore, type LocalStore } from '../src/lib/sync/localStore'
 import { NoteSync, type SyncApi } from '../src/lib/sync/engine'
 
@@ -397,6 +398,41 @@ describe('re-importing an export', () => {
     const parsed = parseSimplenote('notes.json', raw)!
     expect(await e.importMany(parsed)).toMatchObject({ created: 2, duplicates: 0 })
     expect(await e.importMany(parseSimplenote('notes.json', raw)!)).toMatchObject({ created: 0, queued: 0, duplicates: 2 })
+  })
+
+  it('calls attach only with fresh notes and imports what it returns', async () => {
+    const e = newEngine()
+    await e.start()
+    const parsed: ParsedNote[] = [
+      {
+        title: 'one',
+        body: 'body one',
+        color: 'default',
+        labels: [],
+        pinned: false,
+        archived: false,
+        modifiedAt: 1,
+        sourcePath: 'one.json',
+        images: [{ name: 'pic.png', type: 'image/png' }],
+      },
+    ]
+    const attach = vi.fn(async (fresh: ParsedNote[]) =>
+      fresh.map((n) => ({
+        ...n,
+        body: `${n.body}\n\n![pic](/api/blobs/00000000-0000-0000-0000-000000000001)`,
+        images: undefined,
+      })),
+    )
+    const res1 = await e.importMany(parsed, undefined, attach)
+    expect(res1).toMatchObject({ created: 1, duplicates: 0 })
+    expect(attach).toHaveBeenCalledTimes(1)
+    expect(attach).toHaveBeenCalledWith(parsed)
+    expect([...e.getSnapshot().notes.values()][0].body).toContain('![pic](/api/blobs/')
+
+    attach.mockClear()
+    const res2 = await e.importMany(parsed, undefined, attach)
+    expect(res2).toMatchObject({ created: 0, queued: 0, duplicates: 1 })
+    expect(attach).not.toHaveBeenCalled()
   })
 })
 

@@ -1,10 +1,11 @@
 /**
  * Import notes from a Google Keep export (Google Takeout → Keep).
  * Takeout writes one `.json` file per note; this turns each into the same shape the
- * Markdown importer produces. Attachments (images, audio) are not imported.
+ * Markdown importer produces. Images are imported when the export contains the files
+ * and image storage is on; audio is skipped.
  */
 import type { NoteColor } from './crypto'
-import { validDate, type ParsedNote } from './importMarkdown'
+import { validDate, type ImportImage, type ParsedNote } from './importMarkdown'
 
 const MAX_LABEL = 40
 
@@ -28,6 +29,7 @@ interface KeepNote {
   title?: unknown
   textContent?: unknown
   listContent?: unknown
+  attachments?: unknown
   labels?: unknown
   annotations?: unknown
   color?: unknown
@@ -42,7 +44,7 @@ interface KeepNote {
 function isKeepNote(v: unknown): v is KeepNote {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false
   const o = v as KeepNote
-  const hasContent = typeof o.textContent === 'string' || Array.isArray(o.listContent)
+  const hasContent = typeof o.textContent === 'string' || Array.isArray(o.listContent) || Array.isArray(o.attachments)
   const hasKeepFields = 'isTrashed' in o || 'isArchived' in o || 'userEditedTimestampUsec' in o
   return hasContent && hasKeepFields
 }
@@ -78,9 +80,19 @@ export function parseKeepNote(path: string, raw: string, modifiedAt = Date.now()
     if (links.length) lines.push(links.join('\n'))
   }
 
+  const images: ImportImage[] = []
+  if (Array.isArray(data.attachments)) {
+    for (const a of data.attachments) {
+      if (a && typeof a === 'object' && typeof (a as { filePath?: unknown }).filePath === 'string' && typeof (a as { mimetype?: unknown }).mimetype === 'string') {
+        const name = (a as { filePath: string }).filePath.split(/[/\\]/).pop() ?? ''
+        if (name) images.push({ name, type: (a as { mimetype: string }).mimetype.toLowerCase() })
+      }
+    }
+  }
+
   const title = typeof data.title === 'string' ? data.title.trim() : ''
   const body = lines.join('\n\n')
-  if (!title && !body) return null
+  if (!title && !body && !images.length) return null
 
   const labels = Array.isArray(data.labels)
     ? data.labels
@@ -102,5 +114,6 @@ export function parseKeepNote(path: string, raw: string, modifiedAt = Date.now()
     modifiedAt: Number.isFinite(usec) && usec > 0 ? Math.round(usec / 1000) : modifiedAt,
     createdAt: validDate(Math.round(Number(data.createdTimestampUsec) / 1000)),
     sourcePath: path,
+    ...(images.length ? { images } : {}),
   }
 }

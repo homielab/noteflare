@@ -6,6 +6,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ### Added
 
+- Google Keep import now brings your images: drop the Keep folder or the Takeout .zip with image storage turned on. Without it, notes import as before and you're told how many images were skipped.
 - Images: a gallery of every image in your notes, with a Files tab for other attachments. Search it or filter by label, then jump straight to the note.
 - Rename or delete a label everywhere at once: open the label, then **Edit label**. Renaming to a label that exists merges the two.
 - Make a copy of a note from its menu.

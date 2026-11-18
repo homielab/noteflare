@@ -31,7 +31,7 @@ App ghi chú đơn giản, riêng tư, không cần máy chủ — mã hoá đ�
 - 🎨 **Tuỳ biến theo ý bạn**: React, Tailwind, shadcn/ui thuần; một API Hono nhỏ và các file migration SQL thuần.
 - 📝 **Ghi chú markdown**: tiêu đề, bảng, trích dẫn, code có tô màu cú pháp, checklist `- [ ]` tick ngay trên thẻ.
 - 📌 **Sắp xếp theo cách của bạn**: ghim, kéo ghi chú theo thứ tự bạn muốn, 8 màu giấy, nhãn, lưu trữ, thùng rác tự dọn sau 30 ngày. Chọn nhiều ghi chú, hoặc tất cả, rồi gắn nhãn hoặc chuyển vào thùng rác một lần; đổi tên hoặc xóa nhãn ở mọi ghi chú, hoặc tạo bản sao của một ghi chú.
-- 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được), bản xuất Google Keep hoặc bản xuất Evernote, Simplenote, Standard Notes, mọi ghi chú được mã hoá khi nhập.
+- 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được), bản xuất Google Keep (kèm hình ảnh) hoặc bản xuất Evernote, Simplenote, Standard Notes, mọi ghi chú được mã hoá khi nhập.
 - 📤 **Xuất và sao lưu**: tải ghi chú về dạng Markdown, hoặc một bản sao lưu đã mã hoá để khôi phục sau này.
 - 🖼️ **Ảnh và file mã hoá** (tuỳ chọn): đính kèm ảnh, PDF hay bất kỳ file nào, được mã hoá trước khi tải lên và lưu trong bucket R2 của riêng bạn. Xem mọi ảnh trong một thư viện, kèm tab File cho các file còn lại.
 - ✨ **Mở khoá là giải mã tại chỗ**: từng ghi chú hiện ra từ ciphertext ngay khi bạn mở khoá.

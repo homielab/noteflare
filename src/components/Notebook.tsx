@@ -23,7 +23,7 @@ import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { PasskeysDialog } from './PasskeysDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
 import { BackupDialog } from './BackupDialog'
-import { AttachmentsContext, clearAttachments, deleteAttachments, unusedAttachments } from '@/lib/attachments'
+import { AttachmentsContext, clearAttachments, deleteAttachments, unusedAttachments, uploadAttachment } from '@/lib/attachments'
 import { SaveIndicator, useSyncLabel } from './SaveIndicator'
 import { AboutDialog, type AboutTab } from './AboutDialog'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -808,6 +808,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       <ImportDropzone
         ref={importer}
         enabled={!editing && !pwOpen && !pkOpen && !intOpen && !backupOpen && !aboutOpen && !keysOpen}
+        images={{ enabled: attachments, upload: (file) => uploadAttachment(dek, file) }}
         onImport={importMany}
         onDone={() => {
           setQuery('')

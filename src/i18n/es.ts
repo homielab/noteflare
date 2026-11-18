@@ -353,6 +353,12 @@ export const es: Record<MessageKey, string> = {
   'imp.nothingNew': 'Nada nuevo que importar — todas las notas ya están aquí.',
   'imp.error': 'La importación falló. Comprueba tu conexión e inténtalo de nuevo.',
   'imp.queued': '{n} guardadas en este dispositivo, se subirán al reconectar',
+  'imp.uploadingImages': 'Cifrando y subiendo imagen {done} de {total}…',
+  'imp.imagesOff': '{n} imágenes omitidas: el almacenamiento de imágenes está desactivado',
+  'imp.imagesMissing': '{n} imágenes no encontradas en la exportación',
+  'imp.imagesTooLarge': '{n} imágenes de más de 10 MB omitidas',
+  'imp.imagesUnsupported': '{n} archivos adjuntos de tipo no compatible omitidos',
+  'imp.imagesFailed': 'No se pudieron subir {n} imágenes',
 
   'int.title': 'Integraciones',
   'int.body': 'Deja que scripts, la línea de comandos y otras apps alcancen tus notas con un token. Un token solo obtiene la copia cifrada: las apps igualmente necesitan tu frase de contraseña para leer algo.',

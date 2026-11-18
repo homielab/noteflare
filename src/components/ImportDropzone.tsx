@@ -3,7 +3,8 @@ import { FolderDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import type { ImportResult } from '@/lib/notes'
-import { expandZips, filesFromDrop, filesFromInput, isEnexPath, isKeepPath, MAX_EXPORT_BYTES, MAX_IMPORT_CHARS, parseMarkdown, type ParsedNote, type SourceFile } from '@/lib/importMarkdown'
+import { expandZips, filesFromDrop, filesFromInput, isEnexPath, isImportMediaPath, isKeepPath, MAX_EXPORT_BYTES, MAX_IMPORT_CHARS, parseMarkdown, type ParsedNote, type SourceFile } from '@/lib/importMarkdown'
+import { attachImportImages, findMedia, type ImageSkips } from '@/lib/importImages'
 import { parseKeepNote } from '@/lib/importKeep'
 import { parseEnex } from '@/lib/importEvernote'
 import { parseSimplenote } from '@/lib/importSimplenote'
@@ -19,9 +20,14 @@ export interface ImportHandle {
 interface Props {
   /** Disabled while a dialog is open or the notebook is locked. */
   enabled: boolean
+  images: {
+    enabled: boolean
+    upload: (file: File) => Promise<string>
+  }
   onImport: (
     notes: ParsedNote[],
     onProgress: (done: number, total: number) => void,
+    attach?: (fresh: ParsedNote[]) => Promise<ParsedNote[]>,
   ) => Promise<ImportResult>
   onDone?: () => void
 }
@@ -30,7 +36,7 @@ interface Props {
  * Drop a folder (Markdown files or a Google Keep export) or .md files anywhere on the page to import it.
  * Files are read and parsed in the browser; the store encrypts before upload.
  */
-export const ImportDropzone = forwardRef<ImportHandle, Props>(function ImportDropzone({ enabled, onImport, onDone }, ref) {
+export const ImportDropzone = forwardRef<ImportHandle, Props>(function ImportDropzone({ enabled, images, onImport, onDone }, ref) {
   const { t } = useI18n()
   const [over, setOver] = useState(false)
   const depth = useRef(0)
@@ -56,8 +62,13 @@ export const ImportDropzone = forwardRef<ImportHandle, Props>(function ImportDro
     try {
       const files = await expandZips(await collect())
       const parsed: ParsedNote[] = []
+      const media = new Map<string, File>()
       let tooLarge = 0
       for (const { path, file } of files) {
+        if (isImportMediaPath(path)) {
+          media.set(path, file)
+          continue
+        }
         // Paths that got here as .txt are possible JSON exports (see isTextExportPath).
         const isText = /\.txt$/i.test(path)
         const isExport = isEnexPath(path) || isKeepPath(path) || isText
@@ -91,12 +102,32 @@ export const ImportDropzone = forwardRef<ImportHandle, Props>(function ImportDro
         return
       }
 
-      const res = await onImport(parsed, (done, total) => toast.loading(t('imp.progress', { done, total }), { id }))
+      let skips: ImageSkips | null = null
+      const attach = parsed.some((n) => n.images?.length)
+        ? async (fresh: ParsedNote[]) => {
+            const res = await attachImportImages(fresh, {
+              enabled: images.enabled,
+              upload: images.upload,
+              find: (note, name) => findMedia(media, note.sourcePath, name),
+              onProgress: (done, total) => toast.loading(t('imp.uploadingImages', { done, total }), { id }),
+            })
+            skips = res.skips
+            return res.notes
+          }
+        : undefined
+
+      const res = await onImport(parsed, (done, total) => toast.loading(t('imp.progress', { done, total }), { id }), attach)
       const added = res.created + res.queued
+      const s = skips as ImageSkips | null
       const details = [
         res.queued && t('imp.queued', { n: res.queued }),
         res.duplicates && t('imp.duplicates', { n: res.duplicates }),
         tooLarge && t('imp.tooLarge', { n: tooLarge }),
+        s?.off && t('imp.imagesOff', { n: s.off }),
+        s?.missing && t('imp.imagesMissing', { n: s.missing }),
+        s?.tooLarge && t('imp.imagesTooLarge', { n: s.tooLarge }),
+        s?.unsupported && t('imp.imagesUnsupported', { n: s.unsupported }),
+        s?.failed && t('imp.imagesFailed', { n: s.failed }),
         res.failed && t('imp.failed', { n: res.failed }),
       ]
         .filter(Boolean)

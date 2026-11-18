@@ -353,6 +353,12 @@ export const de: Record<MessageKey, string> = {
   'imp.nothingNew': 'Nichts Neues zu importieren — alle Notizen sind schon hier.',
   'imp.error': 'Import fehlgeschlagen. Prüfe deine Verbindung und versuch es erneut.',
   'imp.queued': '{n} auf diesem Gerät gespeichert, werden hochgeladen, sobald du wieder verbunden bist',
+  'imp.uploadingImages': 'Bild {done} von {total} wird verschlüsselt und hochgeladen…',
+  'imp.imagesOff': '{n} Bilder übersprungen: Bildspeicher ist aus',
+  'imp.imagesMissing': '{n} Bilder im Export nicht gefunden',
+  'imp.imagesTooLarge': '{n} Bilder über 10 MB übersprungen',
+  'imp.imagesUnsupported': '{n} Anhänge mit nicht unterstütztem Format übersprungen',
+  'imp.imagesFailed': '{n} Bilder konnten nicht hochgeladen werden',
 
   'int.title': 'Integrationen',
   'int.body': 'Lass Skripte, die Kommandozeile und andere Apps mit einem Token an deine Notizen. Ein Token bekommt nur die verschlüsselte Kopie — Apps brauchen trotzdem deine Passphrase, um etwas zu lesen.',

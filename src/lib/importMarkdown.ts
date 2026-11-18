@@ -2,6 +2,7 @@
  * Import Markdown from folders/files the user drops or picks.
  * Everything is read and parsed in the browser; only ciphertext is uploaded.
  */
+import { ATTACHMENT_TYPES } from '../../shared/types'
 import { NOTE_COLORS, type NoteColor, type NotePayload } from './crypto'
 import { readZip } from './zip'
 
@@ -9,6 +10,14 @@ export interface SourceFile {
   /** Relative path, e.g. "Vault/Work/plan.md". */
   path: string
   file: File
+}
+
+/** An image listed by the source note, still to be uploaded (Google Keep). */
+export interface ImportImage {
+  /** File name as the export lists it; the file sits next to the note's file. */
+  name: string
+  /** MIME type as the export states it. */
+  type: string
 }
 
 export interface ParsedNote extends NotePayload {
@@ -19,6 +28,7 @@ export interface ParsedNote extends NotePayload {
   /** Original creation date, when the source has one. */
   createdAt?: number
   sourcePath: string
+  images?: ImportImage[]
 }
 
 const MD_EXT = /\.(md|markdown|mdown|mkd)$/i
@@ -44,8 +54,9 @@ export const isTextExportPath = (path: string, inZip = false) =>
   /\.txt$/i.test(path) && (inZip || /standard notes/i.test(path.split('/').pop()!)) && !inSkippedDir(path)
 /** An export packed as a .zip (Standard Notes, Simplenote, Google Takeout…): unpacked in the browser. */
 export const isZipPath = (path: string) => /\.zip$/i.test(path) && !inSkippedDir(path)
+export const isImportMediaPath = (path: string) => /\.(png|jpe?g|gif|webp|avif)$/i.test(path) && !inSkippedDir(path)
 export const isImportablePath = (path: string) =>
-  isMarkdownPath(path) || isKeepPath(path) || isEnexPath(path) || isTextExportPath(path) || isZipPath(path)
+  isMarkdownPath(path) || isKeepPath(path) || isEnexPath(path) || isTextExportPath(path) || isZipPath(path) || isImportMediaPath(path)
 
 /**
  * Replace each .zip with the importable files inside it ("Backup.zip/notes.json"). A zip over
@@ -58,7 +69,9 @@ export async function expandZips(files: SourceFile[]): Promise<SourceFile[]> {
       out.push(f)
       continue
     }
-    const want = (name: string) => !isZipPath(name) && (isMarkdownPath(name) || isKeepPath(name) || isEnexPath(name) || isTextExportPath(name, true))
+    const want = (name: string) =>
+      !isZipPath(name) &&
+      (isMarkdownPath(name) || isKeepPath(name) || isEnexPath(name) || isTextExportPath(name, true) || isImportMediaPath(name))
     for (const e of await readZip(new Uint8Array(await f.file.arrayBuffer()), want, MAX_EXPORT_BYTES)) {
       const path = `${f.path}/${e.name}`
       out.push({ path, file: new File([e.data], path.split('/').pop()!, { lastModified: e.modifiedAt }) })
@@ -229,4 +242,42 @@ const isTrue = (v: unknown) => typeof v === 'string' && /^(true|yes|1)$/i.test(v
 export const validDate = (ts: number) => (Number.isFinite(ts) && ts > 0 ? ts : undefined)
 
 /** Duplicate key: same title + body counts as already imported. */
-export const dedupeKey = (n: Pick<NotePayload, 'title' | 'body'>) => `${n.title.trim()}\u0000${n.body.trim()}`
+const BLOB_IMAGE = /!\[([^\]]*)\]\(\/api\/blobs\/[0-9a-f-]{36}(?:#[^)\s]*)?\)/gi
+/** The alt text an uploaded image gets from its file name (must match `uploadAttachment`). */
+export const imageAlt = (fileName: string) => fileName.replace(/\.[^.]+$/, '').replace(/[[\]\n\r]/g, ' ').trim() || 'image'
+const textOnly = (body: string) => body.replace(BLOB_IMAGE, '').trim()
+const textKey = (n: Pick<NotePayload, 'title' | 'body'>) => `${n.title.trim()}\u0000${textOnly(n.body)}`
+/** Duplicate key: same title + text + image names counts as already imported (blob ids differ per upload, so they are left out). */
+type Keyed = Pick<NotePayload, 'title' | 'body'> & { images?: ImportImage[] }
+/** Names of the note's attachment images: those in its body, then those still to upload (types the app can't show are never uploaded). */
+const imageNames = (n: Keyed) => {
+  const isSupported = (i: ImportImage) => !i.type || (ATTACHMENT_TYPES as readonly string[]).includes(i.type)
+  return [...n.body.matchAll(BLOB_IMAGE)].map((m) => m[1]).concat((n.images ?? []).filter(isSupported).map((i) => imageAlt(i.name)))
+}
+export const dedupeKey = (n: Keyed) => {
+  const names = imageNames(n)
+  return names.length ? `${textKey(n)}\u0000${names.join('\u0000')}` : textKey(n)
+}
+/** The parsed notes that are not already there (and not twice in `parsed`). */
+export function freshNotes(parsed: ParsedNote[], existing: Iterable<Pick<NotePayload, 'title' | 'body'>>): ParsedNote[] {
+  const seen = new Set<string>()
+  const byText = new Map<string, string[][]>() // image names of each existing note with that title and text
+  for (const n of existing) {
+    seen.add(dedupeKey(n))
+    const key = textKey(n)
+    byText.set(key, [...(byText.get(key) ?? []), imageNames(n)])
+  }
+  return parsed.filter((p) => {
+    const key = dedupeKey(p)
+    if (seen.has(key)) return false
+    if (p.images?.length) {
+      // An earlier import that had to skip some or all of this note's images stored the note without them.
+      const mine = new Set(imageNames(p))
+      const hasText = !!(p.title.trim() || textOnly(p.body))
+      const stored = byText.get(textKey(p)) ?? []
+      if (stored.some((theirs) => (theirs.length > 0 || hasText) && theirs.every((name) => mine.has(name)))) return false
+    }
+    seen.add(key)
+    return true
+  })
+}

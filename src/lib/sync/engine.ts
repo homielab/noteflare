@@ -22,7 +22,7 @@ import {
 } from '../../../shared/types'
 import { ApiError } from '../api'
 import { decryptNote, encryptNote } from '../crypto'
-import { dedupeKey, type ParsedNote } from '../importMarkdown'
+import { freshNotes, type ParsedNote } from '../importMarkdown'
 import { contentChanged, emptyNote, localRow, sameContent, toPayload, type Note, type NotePatch } from '../noteModel'
 import type { LocalStore, OutboxEntry } from './localStore'
 import { mergeNotes, type MergeSide } from './merge'
@@ -585,15 +585,14 @@ export class NoteSync {
    * Import many notes: skip duplicates, encrypt locally, show them right away,
    * upload in batches. Batches that can't be sent are queued for later.
    */
-  importMany = async (parsed: ParsedNote[], onProgress?: (done: number, total: number) => void): Promise<ImportResult> => {
-    const seen = new Set([...this.snap.notes.values()].filter((n) => !n.trashedAt).map(dedupeKey))
-    const fresh = parsed.filter((p) => {
-      const key = dedupeKey(p)
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+  importMany = async (
+    parsed: ParsedNote[],
+    onProgress?: (done: number, total: number) => void,
+    attach?: (fresh: ParsedNote[]) => Promise<ParsedNote[]>,
+  ): Promise<ImportResult> => {
+    let fresh = freshNotes(parsed, [...this.snap.notes.values()].filter((n) => !n.trashedAt))
     const result: ImportResult = { created: 0, queued: 0, duplicates: parsed.length - fresh.length, failed: 0 }
+    if (attach && fresh.length) fresh = await attach(fresh)
     if (!fresh.length) return result
 
     const prepared = await Promise.all(

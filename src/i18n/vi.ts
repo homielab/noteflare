@@ -353,6 +353,12 @@ export const vi: Record<MessageKey, string> = {
   'imp.nothingNew': 'Không có gì mới — mọi ghi chú đều đã có.',
   'imp.error': 'Nhập thất bại. Kiểm tra kết nối rồi thử lại.',
   'imp.queued': '{n} ghi chú đã lưu trên máy, sẽ tải lên khi có mạng',
+  'imp.uploadingImages': 'Đang mã hoá và tải lên ảnh {done}/{total}…',
+  'imp.imagesOff': 'Bỏ qua {n} ảnh: lưu trữ ảnh đang tắt',
+  'imp.imagesMissing': 'Không tìm thấy {n} ảnh trong bản xuất',
+  'imp.imagesTooLarge': 'Bỏ qua {n} ảnh trên 10 MB',
+  'imp.imagesUnsupported': 'Bỏ qua {n} đính kèm có định dạng không hỗ trợ',
+  'imp.imagesFailed': '{n} ảnh không tải lên được',
 
   'int.title': 'Tích hợp',
   'int.body': 'Cho phép script, dòng lệnh và ứng dụng khác truy cập ghi chú bằng token. Token chỉ lấy được bản đã mã hoá — ứng dụng vẫn cần passphrase của bạn mới đọc được.',

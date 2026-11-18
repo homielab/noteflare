@@ -353,6 +353,12 @@ export const fr: Record<MessageKey, string> = {
   'imp.nothingNew': 'Rien de neuf à importer — toutes les notes sont déjà là.',
   'imp.error': 'L’import a échoué. Vérifiez votre connexion et réessayez.',
   'imp.queued': '{n} enregistrées sur cet appareil, envoi à la reconnexion',
+  'imp.uploadingImages': 'Chiffrement et envoi de l’image {done} sur {total}…',
+  'imp.imagesOff': '{n} images ignorées : le stockage d’images est désactivé',
+  'imp.imagesMissing': '{n} images introuvables dans l’export',
+  'imp.imagesTooLarge': '{n} images de plus de 10 Mo ignorées',
+  'imp.imagesUnsupported': '{n} pièces jointes d’un type non pris en charge ignorées',
+  'imp.imagesFailed': '{n} images n’ont pas pu être envoyées',
 
   'int.title': 'Intégrations',
   'int.body': 'Laissez les scripts, la ligne de commande et d’autres apps accéder à vos notes avec un token. Un token n’obtient que la copie chiffrée — les apps ont quand même besoin de votre phrase secrète pour lire quoi que ce soit.',

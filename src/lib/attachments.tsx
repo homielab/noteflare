@@ -27,6 +27,7 @@ import { api, ApiError } from './api'
 import { blobCache, type BlobCache, type BlobKind } from './blobCache'
 import { decryptBlob, encryptBlob } from './crypto'
 import { downloadFile } from './exportNotes'
+import { imageAlt } from './importMarkdown'
 import { useI18n } from '../i18n'
 import { ImagePlaceholder, type ImageFailure } from '../components/ImagePlaceholder'
 
@@ -362,7 +363,7 @@ export async function uploadAttachment(
   }
   await cache.put(id, blob, 'full') // shows offline from now on
   urls.set(id, Promise.resolve(URL.createObjectURL(file))) // no need to download what we just sent
-  return `![${label(file.name.replace(/\.[^.]+$/, '')) || 'image'}](${attachmentUrl(id, size, thumbId)})`
+  return `![${imageAlt(file.name)}](${attachmentUrl(id, size, thumbId)})`
 }
 
 /** Best-effort removal of blobs that no note refers to any more, from the server and this device. */
