@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
+import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Images, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -32,8 +32,10 @@ import { DONATE_URL, takeNewReleases, useUpdates } from '@/lib/updates'
 import { onLaunch, type LaunchAction } from '@/lib/launch'
 import { themeTransition } from '@/lib/motion'
 import { ImportDropzone, type ImportHandle } from './ImportDropzone'
+import { ImageLibrary } from './ImageLibrary'
+import { scanLibrary } from '@/lib/library'
 
-type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind: 'label'; label: string }
+type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind: 'label'; label: string } | { kind: 'images' }
 
 const byPosition = (a: Note, b: Note) => b.position - a.position
 const sameView = (a: View, b: View) => a.kind === b.kind && (a.kind !== 'label' || a.label === (b as typeof a).label)
@@ -149,6 +151,9 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     }
   }, [store.notes])
 
+  const library = useMemo(() => scanLibrary(store.notes), [store.notes])
+  const showLibrary = attachments || library.images.length + library.files.length > 0
+
   const visible = useMemo(() => {
     const q = appliedQuery.trim().toLocaleLowerCase()
     return store.notes
@@ -158,6 +163,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           case 'archive': return !n.trashedAt && n.archived
           case 'trash': return !!n.trashedAt
           case 'label': return !n.trashedAt && n.labels.includes(view.label)
+          case 'images': return false
         }
       })
       .filter((n) => !q || `${n.title}\n${n.body}\n${n.labels.join(' ')}`.toLocaleLowerCase().includes(q))
@@ -236,6 +242,10 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     const n = store.byId.get(id)
     // Nothing else moves when a note opens: only its card morphs into the editor.
     if (n) transition(() => setEditing(n), { id })
+  }
+  const openFromLibrary = (id: string) => {
+    const n = store.byId.get(id)
+    if (n) transition(() => setEditing(n), 'none')
   }
 
   const moveWithUndo = useCallback(
@@ -658,7 +668,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           </div>
         </div>
 
-        {/* Notes and labels scroll sideways; Archive and Trash stay put, so they are always in reach. */}
+        {/* Notes and labels scroll sideways; Images, Archive and Trash stay put, so they are always in reach. */}
         <nav aria-label={t('nb.filters')} className="mx-auto flex max-w-[84rem] items-start gap-2 px-3 pb-3 sm:px-6">
           <div
             ref={navRef}
@@ -679,6 +689,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           </ul>
           </div>
           <ul className="flex shrink-0 gap-1 sm:gap-2">
+            {showLibrary && <Chip active={view.kind === 'images'} onClick={() => go({ kind: 'images' })} count={library.images.length} icon={<Images />} label={t('nb.images')} />}
             <Chip active={view.kind === 'archive'} onClick={() => go({ kind: 'archive' })} count={counts.archive} icon={<Archive />} label={t('nb.archive')} />
             <Chip active={view.kind === 'trash'} onClick={() => go({ kind: 'trash' })} count={counts.trash} icon={<Trash2 />} label={t('nb.trash')} />
           </ul>
@@ -727,6 +738,8 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
 
         {store.loading ? (
           <Skeleton label={t('nb.decryptingNotes')} />
+        ) : view.kind === 'images' ? (
+          <ImageLibrary library={library} query={appliedQuery} onOpenNote={openFromLibrary} />
         ) : !visible.length ? (
           <Empty view={view} query={appliedQuery} onNew={newNote} />
         ) : (

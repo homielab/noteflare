@@ -17,6 +17,8 @@ interface Props {
   progress?: number
   onRetry?: () => void
   onCancel?: () => void
+  /** Cover the parent box (a grid tile) instead of reserving a ratio. */
+  fill?: boolean
 }
 
 const FAILURES: Record<ImageFailure, { icon: LucideIcon; message: MessageKey }> = {
@@ -31,13 +33,18 @@ const FAILURES: Record<ImageFailure, { icon: LucideIcon; message: MessageKey }> 
  * The box shown instead of an image that is not (yet) on screen: loading, uploading or why it
  * failed. Only inline elements, so it can sit inside a Markdown paragraph.
  */
-export function ImagePlaceholder({ state, alt, width, height, preview, progress = 0, onRetry, onCancel }: Props) {
+export function ImagePlaceholder({ state, alt, width, height, preview, progress = 0, onRetry, onCancel, fill }: Props) {
   const { t } = useI18n()
   const uploading = state === 'uploading'
-  const box = cn('relative block overflow-hidden rounded-md bg-foreground/[0.07]', uploading && 'size-28')
-  const style = uploading
-    ? undefined
-    : { aspectRatio: `${width ?? 4} / ${height ?? 3}`, width: `min(100%, ${width ? `${width}px` : '20rem'})` }
+  const box = cn(
+    'relative block overflow-hidden rounded-md bg-foreground/[0.07]',
+    uploading && 'size-28',
+    fill && !uploading && 'absolute inset-0 rounded-none',
+  )
+  const style =
+    uploading || fill
+      ? undefined
+      : { aspectRatio: `${width ?? 4} / ${height ?? 3}`, width: `min(100%, ${width ? `${width}px` : '20rem'})` }
 
   if (state === 'loading')
     return (

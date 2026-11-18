@@ -35,7 +35,7 @@ A simple, private, serverless notes app — end-to-end encrypted, completely fre
 - 📌 **Organize your way**: pin, drag notes into the order you want, 8 paper colors, labels, archive, and a trash that empties itself after 30 days. Select several notes, or all of them, and label them or move them to the trash in one go; rename or delete a label everywhere, or make a copy of a note.
 - 📥 **Drag-and-drop import**: drop a folder of Markdown (an Obsidian vault works), a Google Keep export, or an Evernote, Simplenote or Standard Notes export, and every note arrives encrypted.
 - 📤 **Export and backup**: download your notes as Markdown, or as an encrypted backup you can restore later.
-- 🖼️ **Encrypted images and files** (optional): attach images, PDFs or any other file, encrypted before upload and stored in your own R2 bucket.
+- 🖼️ **Encrypted images and files** (optional): attach images, PDFs or any other file, encrypted before upload and stored in your own R2 bucket. Browse every image in one gallery, with a Files tab for the rest.
 - ✨ **Decrypt-in-place unlock**: watch every note resolve from ciphertext the moment you unlock.
 - 📱 **Install it, use it offline**: add NoteFlare to your home screen like an app. Read, write and unlock without a connection; changes sync when you're back.
 - 🔀 **Smart multi-device sync**: edits from two devices to the same note are merged line by line, like `git merge`. Only a true clash (same line, different text) becomes a separate copy.

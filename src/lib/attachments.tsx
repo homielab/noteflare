@@ -221,6 +221,22 @@ function attachmentObjectUrl(dek: CryptoKey, id: string): Promise<string> {
   return url
 }
 
+/** Object URL of what a grid shows for an image link: its thumbnail, or the full image when there is none or it can't be loaded. */
+export function gridObjectUrl(dek: CryptoKey, src: string): Promise<string> {
+  const source = gridSource(src)
+  if (!source) return Promise.reject(new ImageLoadError('deleted'))
+  if (source.kind === 'full') return attachmentObjectUrl(dek, source.full)
+  let url = urls.get(source.id)
+  if (!url) {
+    url = loadImage(dek, source.id, undefined, 'thumb')
+      .then((image) => URL.createObjectURL(new Blob([image.bytes], { type: image.type })))
+      .catch(() => attachmentObjectUrl(dek, source.full))
+    urls.set(source.id, url)
+    url.catch(() => urls.delete(source.id))
+  }
+  return url
+}
+
 export function clearAttachments() {
   for (const url of urls.values()) void url.then((u) => URL.revokeObjectURL(u)).catch(() => {})
   urls.clear()
@@ -402,6 +418,13 @@ export function AttachmentImage({ id, alt, width, height }: { id: string; alt?: 
   return <ImagePlaceholder state={state.failure ?? 'loading'} alt={alt} width={width} height={height} onRetry={retry} />
 }
 
+/** Download, decrypt and save a file attachment. `label` names it when the file carries no name. Throws when it can't be loaded. */
+export async function downloadAttachment(dek: CryptoKey, id: string, label: string): Promise<void> {
+  const file = await loadAttachment(dek, id)
+  // Always saved as a download with a neutral type: a decrypted file never opens inside the app's origin.
+  downloadFile(attachmentDownloadName(file, label.replace(/\s*\([^()]*\)\s*$/, '')), file.bytes, 'application/octet-stream')
+}
+
 /**
  * A file attachment inside rendered Markdown: a chip showing the link's text (name and size).
  * Clicking it downloads, decrypts and saves the file under the name stored inside it.
@@ -415,9 +438,7 @@ export function AttachmentFile({ id, children }: { id: string; children?: ReactN
     if (!dek || busy) return
     setBusy(true)
     try {
-      const file = await loadAttachment(dek, id)
-      // Always saved as a download with a neutral type: a decrypted file never opens inside the app's origin.
-      downloadFile(attachmentDownloadName(file, label.replace(/\s*\([^()]*\)\s*$/, '')), file.bytes, 'application/octet-stream')
+      await downloadAttachment(dek, id, label)
     } catch {
       toast.error(t('att.downloadFailed'))
     } finally {
