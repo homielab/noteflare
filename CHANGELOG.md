@@ -4,6 +4,8 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-18
+
 ### Added
 
 - Google Keep import now brings your images: drop the Keep folder or the Takeout .zip with image storage turned on. Without it, notes import as before and you're told how many images were skipped.
@@ -149,7 +151,8 @@ First public release.
 - One-click Deploy to Cloudflare button; D1 is created automatically.
 - Runs on the Workers and D1 free tiers.
 
-[Unreleased]: https://github.com/homielab/noteflare/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/homielab/noteflare/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/homielab/noteflare/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/homielab/noteflare/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/homielab/noteflare/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/homielab/noteflare/compare/v0.4.0...v0.5.0
