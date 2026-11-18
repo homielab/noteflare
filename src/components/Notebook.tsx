@@ -23,7 +23,7 @@ import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { PasskeysDialog } from './PasskeysDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
 import { BackupDialog } from './BackupDialog'
-import { AttachmentsContext, attachmentIds, clearAttachments, deleteAttachments } from '@/lib/attachments'
+import { AttachmentsContext, clearAttachments, deleteAttachments, unusedAttachments } from '@/lib/attachments'
 import { SaveIndicator, useSyncLabel } from './SaveIndicator'
 import { AboutDialog, type AboutTab } from './AboutDialog'
 import { ShortcutsDialog } from './ShortcutsDialog'
@@ -260,12 +260,14 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const deleteForever = (id: string) => {
     transition(() => {
       setEditing((e) => (e?.id === id ? null : e))
-      // Images that only this note used go with it.
-      const mine = attachmentIds(store.byId.get(id)?.body ?? '')
-      const used = new Set(store.notes.filter((n) => n.id !== id).flatMap((n) => attachmentIds(n.body)))
+      // Images that only this note used go with it, thumbnails included.
+      const unused = unusedAttachments(
+        [store.byId.get(id)?.body ?? ''],
+        store.notes.filter((n) => n.id !== id).map((n) => n.body),
+      )
       void destroy(id).then(() => {
         toast(t('nb.deletedForever'))
-        deleteAttachments(mine.filter((a) => !used.has(a)))
+        deleteAttachments(unused)
       })
     })
   }
@@ -417,11 +419,13 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     if (!trashed.length) return
     if (!window.confirm(trashed.length === 1 ? t('nb.emptyTrashConfirmOne') : t('nb.emptyTrashConfirm', { n: trashed.length }))) return
     const gone = new Set(trashed.map((n) => n.id))
-    const mine = [...new Set(trashed.flatMap((n) => attachmentIds(n.body)))]
-    const used = new Set(store.notes.filter((n) => !gone.has(n.id)).flatMap((n) => attachmentIds(n.body)))
+    const unused = unusedAttachments(
+      trashed.map((n) => n.body),
+      store.notes.filter((n) => !gone.has(n.id)).map((n) => n.body),
+    )
     setEditing((e) => (e && gone.has(e.id) ? null : e))
     for (const n of trashed) await destroy(n.id)
-    deleteAttachments(mine.filter((a) => !used.has(a)))
+    deleteAttachments(unused)
     toast(t('nb.trashEmptied'))
   }
 

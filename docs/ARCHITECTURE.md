@@ -43,7 +43,8 @@ flowchart LR
 | `src/lib/notes.ts` | React hook that connects the UI to NoteSync |
 | `src/lib/importMarkdown.ts`, `importKeep.ts`, `importEvernote.ts`, `importSimplenote.ts`, `importStandardNotes.ts` | Turn dropped folders and files (Markdown, Google Keep, Evernote, Simplenote, Standard Notes exports) into notes |
 | `src/lib/exportNotes.ts`, `zip.ts` | Markdown export, encrypted backup and restore |
-| `src/lib/attachments.tsx` | Encrypted attachments (images and files): upload with progress, decrypt, render, download. Image links may end with `#w=<width>&h=<height>`, which reserves the box before the image loads; a failed load says why (offline, deleted, storage off, can't decrypt, network) |
+| `src/lib/attachments.tsx` | Encrypted attachments (images and files): upload with progress, decrypt, render, download. Image links may end with `#w=<width>&h=<height>&t=<thumbnail id>`: the size reserves the box before the image loads, `t` names the image's thumbnail. A failed load says why (offline, deleted, storage off, can't decrypt, network) |
+| `src/lib/blobCache.ts` | Attachment ciphertext kept on the device (IndexedDB): thumbnails always, full images up to 200 MB, least recently used out first |
 | `src/components/ImagePlaceholder.tsx` | The box shown for an image that is loading, uploading or failed |
 | `src/lib/highlight.ts` | Languages bundled for code highlighting |
 | `src/lib/reorder.ts` | Positions for drag-and-drop ordering |
@@ -106,6 +107,14 @@ The web app is offline-first. The UI reads and writes IndexedDB; NoteSync moves 
 **Retrying.** Failed pushes retry every 5 seconds and when the tab becomes visible again. Nothing is lost while offline: the outbox lives in IndexedDB.
 
 The SDK's `save()` uses the same merge, so a script and the web app can edit one note safely.
+
+## Images: thumbnails and the device cache
+
+Uploading an image larger than 400 px also makes a small version in the browser (longest side 400 px, WebP, or JPEG where the browser can't write WebP; not for animated GIFs). It is encrypted like any attachment, under an id of its own, and uploaded as a second blob. The image's link names it in its fragment: `![photo](/api/blobs/<id>#w=800&h=600&t=<thumbnail id>)`. The fragment never reaches the server, so the server holds one more opaque blob and nothing that ties it to an image or a note. `gridSource()` and `loadGridImage()` give a grid the thumbnail, or the full image when a link has none (images uploaded before thumbnails existed, or by the SDK) or the thumbnail is gone. A thumbnail that can't be made or stored never fails the upload: the link is written without `t`.
+
+A thumbnail lives and dies with its image. Deleting a note forever, or emptying the trash, deletes every blob no remaining note refers to, thumbnails included (`unusedAttachments()`). Exports and backups carry the full image only.
+
+Every blob the app downloads or uploads is also kept on the device, as the same ciphertext the server holds, in the `noteflare-blobs` IndexedDB database (`src/lib/blobCache.ts`); nothing decrypted is written. A blob is cached only after it decrypted. An image seen once therefore shows offline and is not downloaded again, and "Offline, not on this device" means exactly that. Thumbnails are always kept; full images share a 200 MB cap and the least recently used go first. Deleting an attachment removes it from the cache, and signing out deletes the cache. Locking leaves it: it is ciphertext. The service worker has no part in this and never touches `/api`.
 
 ## Offline app shell
 

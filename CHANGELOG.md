@@ -8,6 +8,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 - Rename or delete a label everywhere at once: open the label, then **Edit label**. Renaming to a label that exists merges the two.
 - Make a copy of a note from its menu.
+- Images you've already seen now show offline, and aren't downloaded again each time you open the app.
 
 ### Changed
 

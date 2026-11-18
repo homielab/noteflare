@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type { PasskeyRecord, VaultRecord } from '../../shared/types'
 import { api, ApiError } from './api'
 import { localStore } from './sync/localStore'
+import { blobCache } from './blobCache'
 import { keepOfflineCopy } from './pwa'
 import { transition } from './motion'
 import { watchIdle } from './idleLock'
@@ -13,12 +14,12 @@ const SIGN_OUT_CHANNEL = 'noteflare:sign-out'
 
 /**
  * Remove everything NoteFlare keeps on this device: the encrypted notes, the
- * unsynced changes and the wrapped keys (IndexedDB), settings (localStorage),
+ * unsynced changes, the wrapped keys and the encrypted images (IndexedDB), settings (localStorage),
  * the saved app (Cache Storage and the service worker). Other open tabs are told
  * to sign out. Each step is best-effort so sign-out always finishes.
  */
 async function wipeDevice() {
-  const steps: Promise<unknown>[] = [localStore.destroy()]
+  const steps: Promise<unknown>[] = [localStore.destroy(), blobCache.destroy()]
   try {
     const channel = new BroadcastChannel(SIGN_OUT_CHANNEL)
     channel.postMessage('sign-out')
@@ -98,7 +99,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       try {
         const me = await api.me()
         // Another account signed in on this browser: its cache must not mix with ours.
-        if (cached?.email && cached.email !== me.email) await localStore.clear()
+        if (cached?.email && cached.email !== me.email) await Promise.all([localStore.clear(), blobCache.clear()])
         await localStore.setMeta({ email: me.email, hasVault: me.hasVault })
         setEmail(me.email)
         setAttachments(!!me.attachments)

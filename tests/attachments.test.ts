@@ -5,11 +5,18 @@ import {
   attachmentDownloadName,
   attachmentExportName,
   attachmentIdOf,
+  attachmentBlobIds,
   attachmentIds,
   attachmentSize,
+  attachmentThumbId,
   attachmentUrl,
+  deleteAttachments,
+  gridSource,
+  loadGridImage,
   loadImage,
   rewriteAttachments,
+  unusedAttachments,
+  uploadAttachment,
 } from '../src/lib/attachments'
 import { ApiError } from '../src/lib/api'
 import { markdownEntries } from '../src/lib/exportNotes'
@@ -255,5 +262,121 @@ describe('attachment links with a size fragment', () => {
     expect(unused(`![a](${plain}#w=1&h=1)`, 'nothing')).toEqual([ID_A])
     const file = markdownEntries([{ ...emptyNote(), title: 'N', body: `![a](${plain}#w=800&h=600)` }], 'NoteFlare', new Map([[ID_A, 'x.png']]))
     expect(text(file[0].data)).toContain('![a](attachments/x.png)')
+  })
+})
+
+describe('thumbnails', () => {
+  /** A server and a device cache that only remember what they were given. */
+  const world = () => {
+    const server = new Map<string, Uint8Array>()
+    const device = new Map<string, string>()
+    return {
+      server,
+      device,
+      failPut: (_id: string) => false,
+      deps(info: { size?: { w: number; h: number }; thumb?: { bytes: Uint8Array; type: string } } | Error) {
+        return {
+          putBlob: async (id: string, data: Uint8Array) => {
+            if (this.failPut(id)) throw new ApiError(500, null)
+            server.set(id, data)
+          },
+          deleteBlob: async (id: string) => void server.delete(id),
+          inspect: async () => {
+            if (info instanceof Error) throw info
+            return info
+          },
+          cache: {
+            put: async (id: string, _data: Uint8Array, kind: string) => void device.set(id, kind),
+            delete: async (ids: string[]) => ids.forEach((id) => device.delete(id)),
+          },
+        }
+      },
+    }
+  }
+  const photo = () => new File([bytes('FULL-IMAGE')], 'holiday.png', { type: 'image/png' })
+  const srcOf = (markdown: string) => /\]\((.*)\)$/.exec(markdown)![1]
+  const settle = () => new Promise((r) => setTimeout(r, 0))
+
+  it('stores the image and its thumbnail as two encrypted blobs and names the thumbnail in the link', async () => {
+    const { dek } = await createVault('passphrase')
+    const w = world()
+    const src = srcOf(await uploadAttachment(dek, photo(), undefined, w.deps({ size: { w: 800, h: 600 }, thumb: { bytes: bytes('SMALL'), type: 'image/webp' } })))
+    const id = attachmentIdOf(src)!
+    const thumb = attachmentThumbId(src)!
+    expect(thumb).not.toBe(id)
+    expect([...w.server.keys()].sort()).toEqual([id, thumb].sort())
+    expect(attachmentSize(src)).toEqual({ w: 800, h: 600 })
+    expect(text((await decryptBlob(dek, id, w.server.get(id)!)).bytes)).toBe('FULL-IMAGE')
+    const small = await decryptBlob(dek, thumb, w.server.get(thumb)!)
+    expect(small.type).toBe('image/webp')
+    expect(text(small.bytes)).toBe('SMALL')
+    expect(text(w.server.get(thumb)!)).not.toContain('SMALL')
+    // Both are on the device from now on, the thumbnail as one that is always kept.
+    expect(w.device.get(id)).toBe('full')
+    expect(w.device.get(thumb)).toBe('thumb')
+  }, 30_000)
+
+  it('still gives a working link when the thumbnail cannot be made or stored', async () => {
+    const { dek } = await createVault('passphrase')
+    const cases = [world(), world(), world()]
+    cases[2].failPut = (id) => cases[2].server.size > 0 && !cases[2].server.has(id) // the second blob fails
+    const links = [
+      await uploadAttachment(dek, photo(), undefined, cases[0].deps(new Error('no canvas'))),
+      await uploadAttachment(dek, photo(), undefined, cases[1].deps({ size: { w: 100, h: 50 } })),
+      await uploadAttachment(dek, photo(), undefined, cases[2].deps({ size: { w: 800, h: 600 }, thumb: { bytes: bytes('SMALL'), type: 'image/webp' } })),
+    ]
+    for (const [i, link] of links.entries()) {
+      const src = srcOf(link)
+      const id = attachmentIdOf(src)!
+      expect(attachmentThumbId(src)).toBeNull()
+      expect([...cases[i].server.keys()]).toEqual([id])
+      expect(gridSource(src)).toEqual({ id, kind: 'full', full: id })
+    }
+  }, 30_000)
+
+  it('uses the full image for a link without a thumbnail, or whose thumbnail is gone', async () => {
+    const { dek } = await createVault('passphrase')
+    const plain = `/api/blobs/${ID_A}`
+    expect(gridSource(plain)).toEqual({ id: ID_A, kind: 'full', full: ID_A })
+    expect(gridSource(`${plain}#w=8&h=6`)).toEqual({ id: ID_A, kind: 'full', full: ID_A })
+    expect(gridSource(`${plain}#w=8&h=6&t=not-an-id`)).toEqual({ id: ID_A, kind: 'full', full: ID_A })
+    expect(gridSource(`${plain}#w=8&h=6&t=${ID_B}`)).toEqual({ id: ID_B, kind: 'thumb', full: ID_A })
+    expect(gridSource('https://example.com/a.png')).toBeNull()
+    expect(attachmentUrl(ID_A, { w: 8, h: 6 }, ID_B)).toBe(`${plain}#w=8&h=6&t=${ID_B}`)
+    expect(attachmentUrl(ID_A, undefined, ID_B)).toBe(`${plain}#t=${ID_B}`)
+
+    const stored = new Map([
+      [ID_A, await encryptBlob(dek, ID_A, bytes('FULL'), 'image/png')],
+      [ID_B, await encryptBlob(dek, ID_B, bytes('SMALL'), 'image/webp')],
+    ])
+    const deps = {
+      getBlob: async (id: string) => stored.get(id) ?? Promise.reject(new ApiError(404, null)),
+      online: () => true,
+      cache: { get: async () => null, put: async () => {}, delete: async () => {} },
+    }
+    expect(text((await loadGridImage(dek, `${plain}#t=${ID_B}`, deps)).bytes)).toBe('SMALL')
+    expect(text((await loadGridImage(dek, plain, deps)).bytes)).toBe('FULL')
+    stored.delete(ID_B)
+    expect(text((await loadGridImage(dek, `${plain}#t=${ID_B}`, deps)).bytes)).toBe('FULL')
+  }, 30_000)
+
+  it('deletes the image and its thumbnail with the last note that uses the image, not before', async () => {
+    const w = world()
+    w.server.set(ID_A, bytes('full'))
+    w.server.set(ID_B, bytes('thumb'))
+    w.device.set(ID_A, 'full')
+    w.device.set(ID_B, 'thumb')
+    const body = `![a](/api/blobs/${ID_A}#w=800&h=600&t=${ID_B})`
+    expect(attachmentBlobIds(body)).toEqual([ID_A, ID_B])
+    expect(attachmentIds(body)).toEqual([ID_A]) // exports carry the full image only
+
+    expect(unusedAttachments([body], [`a copy: ${body}`])).toEqual([])
+    expect(unusedAttachments([body], [`![a](/api/blobs/${ID_A})`])).toEqual([ID_B])
+    const unused = unusedAttachments([body, body], ['another note'])
+    expect(unused).toEqual([ID_A, ID_B])
+    deleteAttachments(unused, w.deps({}))
+    await settle()
+    expect(w.server.size).toBe(0)
+    expect(w.device.size).toBe(0)
   })
 })
