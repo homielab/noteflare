@@ -32,6 +32,7 @@ export const vi: Record<MessageKey, string> = {
   'access.err.not_owner': "Token này không thấy cơ sở dữ liệu của NoteFlare này. Hãy tạo token trong đúng tài khoản Cloudflare đang chạy NoteFlare, với các quyền link đã chọn.",
   'access.err.zero_trust': "Cloudflare không bật được Zero Trust cho tài khoản này. Mở Zero Trust trên Cloudflare một lần, chọn tên team và gói Free, rồi thử lại.",
   'access.err.cloudflare': "Cloudflare từ chối một bước. Kiểm tra token có đủ các quyền link đã chọn.",
+  'access.err.no_database': "Cơ sở dữ liệu của NoteFlare chưa có bảng nào, nên lần deploy trước chưa xong. Chạy bun run db:migrate:remote, hoặc deploy lại, rồi thử lại.",
   'access.err.already_set_up': "Đăng nhập đã được cài đặt. Tải lại trang để đăng nhập.",
   'gate.serverError': 'Không kết nối được máy chủ. Kiểm tra mạng rồi tải lại trang.',
   'gate.offlineEmpty': 'Bạn đang offline và máy này chưa có bản sao ghi chú. Kết nối mạng một lần, từ đó NoteFlare dùng được cả khi offline.',

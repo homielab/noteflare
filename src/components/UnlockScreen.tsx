@@ -120,7 +120,7 @@ export function AccessSetupScreen() {
       setDone(true)
     } catch (err) {
       const body = err instanceof ApiError ? (err.body as { error?: string; detail?: string } | null) : null
-      const known = ['bad_request', 'invalid_token', 'not_owner', 'zero_trust', 'cloudflare', 'already_set_up']
+      const known = ['bad_request', 'invalid_token', 'not_owner', 'zero_trust', 'cloudflare', 'no_database', 'already_set_up']
       const message = body?.error && known.includes(body.error) ? t(`access.err.${body.error}` as MessageKey) : t('access.failed')
       setError(body?.detail ? `${message} (${body.detail})` : message)
     } finally {

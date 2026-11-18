@@ -144,6 +144,22 @@ describe('runSetup', () => {
     await expect(runSetup(store, HOST, TOKEN, 'me@x.com')).rejects.toMatchObject({ code: 'invalid_token' })
   })
 
+  it('says the migrations are missing when the settings table does not exist', async () => {
+    const store = memoryStore()
+    store.set = async () => {
+      throw new Error('D1_ERROR: no such table: settings: SQLITE_ERROR')
+    }
+    const calls = fakeCloudflare(store)
+    await expect(runSetup(store, HOST, TOKEN, 'me@x.com')).rejects.toMatchObject({ code: 'no_database' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('reports other Cloudflare failures as a setup error', async () => {
+    const store = memoryStore()
+    vi.stubGlobal('fetch', async () => fail(500))
+    await expect(runSetup(store, HOST, TOKEN, 'me@x.com')).rejects.toMatchObject({ code: 'cloudflare', detail: 'nope' })
+  })
+
   it('checks the input before calling Cloudflare', async () => {
     const store = memoryStore()
     const calls = fakeCloudflare(store)

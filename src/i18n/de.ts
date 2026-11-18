@@ -32,6 +32,7 @@ export const de: Record<MessageKey, string> = {
   'access.err.not_owner': 'Dieses Token sieht die Datenbank dieses NoteFlare nicht. Erstelle es in dem Cloudflare-Konto, in dem NoteFlare läuft, mit den Berechtigungen, die der Link auswählt.',
   'access.err.zero_trust': 'Cloudflare konnte Zero Trust für dieses Konto nicht aktivieren. Öffne Zero Trust einmal im Cloudflare-Dashboard, wähle einen Teamnamen und den Free-Tarif, und versuch es erneut.',
   'access.err.cloudflare': 'Cloudflare hat einen Schritt abgelehnt. Prüfe, ob das Token die Berechtigungen hat, die der Link auswählt.',
+  'access.err.no_database': "Die Datenbank von NoteFlare hat noch keine Tabellen, das letzte Deployment ist also nicht fertig geworden. Führe bun run db:migrate:remote aus oder deploye erneut, und versuch es dann noch einmal.",
   'access.err.already_set_up': 'Die Anmeldung ist bereits eingerichtet. Lade die Seite neu, um dich anzumelden.',
   'gate.serverError': 'Der Server ist nicht erreichbar. Prüfe deine Verbindung und lade die Seite neu.',
   'gate.offlineEmpty': 'Du bist offline und dieses Gerät hat noch keine Kopie deiner Notizen. Verbinde dich einmal, danach funktioniert NoteFlare auch offline.',

@@ -91,7 +91,7 @@ export const TOKEN_URL =
   '&accountId=*&zoneId=all&name=' +
   encodeURIComponent('NoteFlare setup')
 
-export type SetupErrorCode = 'bad_request' | 'invalid_token' | 'not_owner' | 'zero_trust' | 'cloudflare'
+export type SetupErrorCode = 'bad_request' | 'invalid_token' | 'not_owner' | 'zero_trust' | 'cloudflare' | 'no_database'
 
 export class SetupError extends Error {
   constructor(
@@ -166,7 +166,18 @@ async function setupCode(store: SettingsStore): Promise<string> {
   const existing = (await store.get([K.code]))[K.code]
   if (existing) return existing
   const code = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, '0')).join('')
-  await store.set({ [K.code]: code })
+  try {
+    await store.set({ [K.code]: code })
+  } catch (e) {
+    // The deploy went live but its migrations were never applied.
+    if (String(e).includes('no such table')) {
+      throw new SetupError(
+        'no_database',
+        "NoteFlare's database has no tables yet, so the last deploy didn't finish. Run bun run db:migrate:remote, or deploy again, then try again.",
+      )
+    }
+    throw e
+  }
   return code
 }
 
@@ -179,7 +190,11 @@ async function findOwnAccount(cf: ReturnType<typeof cloudflare>, code: string): 
     if (e instanceof CfError && (e.status === 401 || e.status === 403)) {
       throw new SetupError('invalid_token', 'Cloudflare did not accept this token. Copy it again, in full.')
     }
-    throw e
+    throw new SetupError(
+      'cloudflare',
+      'Cloudflare refused a step. Check the token has the permissions the link selects.',
+      e instanceof Error ? e.message : String(e),
+    )
   }
   let lookups = 0
   for (const { id } of accounts) {

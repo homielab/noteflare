@@ -30,6 +30,7 @@ export const en = {
   'access.err.not_owner': "This token can't see this NoteFlare's database. Create it in the Cloudflare account NoteFlare is deployed to, with the permissions the link selects.",
   'access.err.zero_trust': "Cloudflare could not turn on Zero Trust for this account. Open Zero Trust in the Cloudflare dashboard once, choose a team name and the Free plan, then try again.",
   'access.err.cloudflare': "Cloudflare refused a step. Check the token has the permissions the link selects.",
+  'access.err.no_database': "NoteFlare's database has no tables yet, so the last deploy didn't finish. Run bun run db:migrate:remote, or deploy again, then try again.",
   'access.err.already_set_up': "The login is already set up. Reload the page to sign in.",
   'gate.serverError': "Can't reach the server. Check your connection and reload the page.",
   'gate.offlineEmpty': "You're offline, and this device doesn't have a copy of your notes yet. Connect once and NoteFlare will work offline from then on.",
