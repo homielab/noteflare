@@ -6,6 +6,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ### Added
 
+- Set a reminder on a note: NoteFlare lists it under Reminders and tells you when it's due while the app is open.
 - A live demo you can try in your browser, with sample notes and nothing to deploy.
 
 ### Changed

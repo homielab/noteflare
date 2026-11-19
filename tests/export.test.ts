@@ -10,9 +10,12 @@ const text = (b: Uint8Array) => new TextDecoder().decode(b)
 
 describe('Markdown export', () => {
   it('writes frontmatter the importer reads back unchanged', () => {
-    const n = note({ title: 'Kế hoạch: "Q4"', body: '- [ ] one\n\n```js\nx\n```', labels: ['work', 'q4'], color: 'sky', pinned: true })
-    const back = parseMarkdown('NoteFlare/x.md', toMarkdownFile(n))
-    expect(back).toMatchObject({ title: n.title, body: n.body, labels: n.labels, color: 'sky', pinned: true, archived: false })
+    const reminder = 1_700_000_000_000
+    const n = note({ title: 'Kế hoạch: "Q4"', body: '- [ ] one\n\n```js\nx\n```', labels: ['work', 'q4'], color: 'sky', pinned: true, reminder })
+    const md = toMarkdownFile(n)
+    expect(md).toContain(`reminder: ${new Date(reminder).toISOString()}`)
+    const back = parseMarkdown('NoteFlare/x.md', md)
+    expect(back).toMatchObject({ title: n.title, body: n.body, labels: n.labels, color: 'sky', pinned: true, archived: false, reminder })
   })
 
   it('skips the trash, makes names unique and safe, and turns a slash label into folders', () => {
@@ -63,11 +66,11 @@ describe('makeZip', () => {
 describe('encrypted backup', () => {
   it('restores with the same key, and with the passphrase after the key is gone', async () => {
     const { record, dek } = await createVault('correct horse battery staple')
-    const a = note({ title: 'A', body: 'alpha', labels: ['x'], pinned: true, position: 5 })
+    const a = note({ title: 'A', body: 'alpha', labels: ['x'], pinned: true, position: 5, reminder: 1_700_000_000_000 })
     const trashed = note({ title: 'T', trashedAt: 1 })
     const rows = await Promise.all(
       [a, trashed].map(async (n) => ({
-        ...(await encryptNote(dek, n.id, { title: n.title, body: n.body, color: n.color, labels: n.labels })),
+        ...(await encryptNote(dek, n.id, { title: n.title, body: n.body, color: n.color, labels: n.labels, reminder: n.reminder })),
         id: n.id, pinned: n.pinned, archived: n.archived, trashedAt: n.trashedAt, position: n.position, version: 1, createdAt: 1, updatedAt: 2,
       })),
     )
@@ -79,7 +82,7 @@ describe('encrypted backup', () => {
     const restored = await decryptBackup(backup, dek)
     expect(restored.failed).toBe(0)
     expect(restored.notes).toHaveLength(1)
-    expect(restored.notes[0]).toMatchObject({ title: 'A', body: 'alpha', labels: ['x'], pinned: true, modifiedAt: 5 })
+    expect(restored.notes[0]).toMatchObject({ title: 'A', body: 'alpha', labels: ['x'], pinned: true, modifiedAt: 5, reminder: 1_700_000_000_000 })
 
     const other = (await createVault('another passphrase entirely')).dek
     expect(await canDecryptBackup(backup, other)).toBe(false)

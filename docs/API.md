@@ -67,6 +67,7 @@ const notes = await nf.list()                       // decrypted, pinned first
 const note = await nf.create({ title: 'Groceries', body: '- [ ] milk', labels: ['home'] })
 await nf.append(note.id, '- [ ] eggs')              // safe even if another device edits at the same time
 await nf.update(note.id, (n) => ({ body: n.body.replace('- [ ] milk', '- [x] milk') }))
+// Reminders: set `reminder: Date.now() + 3600_000` (ms) on create/update; pass `reminder: null` on update to clear
 
 // Editor-style clients: save a whole note, merged with changes made elsewhere
 try {
@@ -293,7 +294,7 @@ and unwrap `recoveryDek` the same way.
 
 **Notes**
 
-- Plaintext: UTF-8 JSON `{"title": string, "body": string, "color": string, "labels": string[]}`.
+- Plaintext: UTF-8 JSON `{"title": string, "body": string, "color": string, "labels": string[], "reminder"?: number (ms)}`.
   `body` is Markdown. `color` is one of `default, sand, sage, sky, lilac, rose, clay, slate`.
   Optional `importedCreatedAt` / `importedUpdatedAt` (ms since epoch): the dates a note had in the app it was imported from.
   Show them instead of the row's `createdAt` / `updatedAt` when present (the SDK's `noteDates(note)` does this), and drop

@@ -50,6 +50,7 @@ export interface NoteInput {
   body?: string
   color?: NoteColor
   labels?: string[]
+  reminder?: number | null
   pinned?: boolean
   archived?: boolean
   position?: number
@@ -181,6 +182,7 @@ export class NoteFlareClient {
       version: 0,
       createdAt: now,
       updatedAt: now,
+      ...(input.reminder !== undefined && input.reminder !== null ? { reminder: input.reminder } : {}),
     }
     validate(note)
     return this.push(note, 0)
@@ -196,7 +198,12 @@ export class NoteFlareClient {
     for (let attempt = 1; ; attempt++) {
       const current = await this.get(id)
       const patch = typeof change === 'function' ? change(current) : change
-      const next: Note = { ...current, ...definedOnly(patch) }
+      const patchClean: Partial<Note> = {
+        ...patch,
+        reminder: patch.reminder === null ? undefined : patch.reminder,
+      }
+      const next: Note = { ...current, ...definedOnly(patchClean) }
+      if (patch.reminder === null) delete next.reminder
       // An imported note shows its original edit date until its content changes here.
       if (contentChanged(current, next)) delete next.importedUpdatedAt
       validate(next)
@@ -398,13 +405,16 @@ export class NoteFlareClient {
   }
 }
 
-function definedOnly(patch: NoteInput): NoteInput {
-  return Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) as NoteInput
+function definedOnly<T extends object>(patch: T): Partial<T> {
+  return Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) as Partial<T>
 }
 
 function validate(n: Note) {
   if (!NOTE_COLORS.includes(n.color)) throw new TypeError(`Unknown color "${n.color}". Use one of: ${NOTE_COLORS.join(', ')}`)
   if (!Array.isArray(n.labels) || n.labels.some((l) => typeof l !== 'string')) throw new TypeError('labels must be strings')
+  if (n.reminder !== undefined && (!Number.isFinite(n.reminder) || !Number.isInteger(n.reminder) || n.reminder <= 0)) {
+    throw new TypeError('reminder must be a timestamp in ms')
+  }
 }
 
 function side(n: Note): MergeSide {
@@ -417,11 +427,18 @@ function side(n: Note): MergeSide {
     archived: n.archived,
     trashedAt: n.trashedAt,
     position: n.position,
+    reminder: n.reminder,
     importedCreatedAt: n.importedCreatedAt,
     importedUpdatedAt: n.importedUpdatedAt,
   }
 }
 
 function contentChanged(a: NotePayload, b: NotePayload) {
-  return a.title !== b.title || a.body !== b.body || a.color !== b.color || a.labels.join('\u0000') !== b.labels.join('\u0000')
+  return (
+    a.title !== b.title ||
+    a.body !== b.body ||
+    a.color !== b.color ||
+    a.labels.join('\u0000') !== b.labels.join('\u0000') ||
+    a.reminder !== b.reminder
+  )
 }

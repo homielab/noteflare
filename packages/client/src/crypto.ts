@@ -31,6 +31,8 @@ export interface NotePayload {
   body: string
   color: NoteColor
   labels: string[]
+  /** When to remind (ms since epoch); absent = no reminder. */
+  reminder?: number
   /** Original creation date (ms) of a note imported from another app. */
   importedCreatedAt?: number
   /** Original last-edit date (ms) of an imported note; dropped on its first edit here. */
@@ -174,6 +176,7 @@ export async function decryptNote(
     body: typeof raw.body === 'string' ? raw.body : '',
     color: NOTE_COLORS.includes(raw.color as NoteColor) ? (raw.color as NoteColor) : 'default',
     labels: Array.isArray(raw.labels) ? raw.labels.filter((l) => typeof l === 'string') : [],
+    ...dateField('reminder', raw.reminder),
     ...dateField('importedCreatedAt', raw.importedCreatedAt),
     ...dateField('importedUpdatedAt', raw.importedUpdatedAt),
   }
@@ -186,6 +189,7 @@ export function notePayload(n: NotePayload): NotePayload {
     body: n.body,
     color: n.color,
     labels: n.labels,
+    ...dateField('reminder', n.reminder),
     ...dateField('importedCreatedAt', n.importedCreatedAt),
     ...dateField('importedUpdatedAt', n.importedUpdatedAt),
   }

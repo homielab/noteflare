@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { PutNoteBody } from '../shared/types'
 import {
   createVault, decryptNote, encryptNote, normalizeRecoveryCode, rewrapVault,
   unlockWithPassphrase, unlockWithRecovery, UnsafeKdfError, WrongSecretError,
@@ -32,6 +33,29 @@ describe('vault', () => {
     expect(await decryptNote(dek, id, enc.ciphertext, enc.iv)).toEqual(dated)
     const bad = await encryptNote(dek, id, { ...note, importedCreatedAt: 'x', importedUpdatedAt: -1 } as never)
     expect(await decryptNote(dek, id, bad.ciphertext, bad.iv)).toEqual(note)
+  }, 30_000)
+
+  it('round-trips reminder inside encrypted payload; keeps wire format free of reminder', async () => {
+    const { dek } = await createVault('pass-reminder')
+    const reminderTime = 1_700_000_000_000
+    const withRem = { ...note, reminder: reminderTime }
+    const enc = await encryptNote(dek, id, withRem)
+    expect(await decryptNote(dek, id, enc.ciphertext, enc.iv)).toEqual(withRem)
+
+    const body: PutNoteBody = {
+      ciphertext: enc.ciphertext,
+      iv: enc.iv,
+      pinned: false,
+      archived: false,
+      trashedAt: null,
+      position: 1,
+      baseVersion: 0,
+    }
+    expect('reminder' in body).toBe(false)
+    const wire = JSON.stringify(body)
+    expect(wire.includes('reminder')).toBe(false)
+    expect(wire.includes(String(reminderTime))).toBe(false)
+    expect(enc.ciphertext.includes(String(reminderTime))).toBe(false)
   }, 30_000)
 
   it('binds ciphertext to note id (AAD)', async () => {

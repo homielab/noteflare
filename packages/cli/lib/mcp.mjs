@@ -48,6 +48,7 @@ export function createTools(nf, { canWrite }) {
             id: n.id,
             title: n.title,
             labels: n.labels,
+            ...(n.reminder ? { reminder: iso(n.reminder) } : {}),
             pinned: n.pinned,
             archived: n.archived,
             updatedAt: iso(n.importedUpdatedAt ?? n.updatedAt),
@@ -67,6 +68,7 @@ export function createTools(nf, { canWrite }) {
           body: n.body,
           labels: n.labels,
           color: n.color,
+          ...(n.reminder ? { reminder: iso(n.reminder) } : {}),
           pinned: n.pinned,
           archived: n.archived,
           // An imported note keeps the dates from the app it came from.
@@ -87,6 +89,7 @@ export function createTools(nf, { canWrite }) {
           title: str('Note title.'),
           body: str('Markdown body.'),
           labels,
+          reminder: str('When to remind (ISO 8601 string, e.g. "2026-11-20T09:00:00Z").'),
           pinned: { type: 'boolean' },
         },
         additionalProperties: false,
@@ -95,6 +98,11 @@ export function createTools(nf, { canWrite }) {
       async handler(args) {
         const input = { title: requireString(args.title, 'title') }
         for (const k of ['body', 'labels', 'pinned']) if (args[k] !== undefined) input[k] = args[k]
+        if (args.reminder !== undefined) {
+          const ms = Date.parse(args.reminder)
+          if (!Number.isFinite(ms)) throw new Error(`Invalid reminder date "${args.reminder}"`)
+          input.reminder = ms
+        }
         return summary(await nf.create(input))
       },
     },
@@ -121,6 +129,7 @@ export function createTools(nf, { canWrite }) {
           title: str('New title.'),
           body: str('New Markdown body (replaces the old one).'),
           labels,
+          reminder: { type: ['string', 'null'], description: 'When to remind (ISO 8601 string), or null to clear.' },
           pinned: { type: 'boolean' },
           archived: { type: 'boolean' },
         },
@@ -130,6 +139,15 @@ export function createTools(nf, { canWrite }) {
       async handler(args) {
         const change = {}
         for (const k of ['title', 'body', 'labels', 'pinned', 'archived']) if (args[k] !== undefined) change[k] = args[k]
+        if (args.reminder !== undefined) {
+          if (args.reminder === null) {
+            change.reminder = null
+          } else {
+            const ms = Date.parse(args.reminder)
+            if (!Number.isFinite(ms)) throw new Error(`Invalid reminder date "${args.reminder}"`)
+            change.reminder = ms
+          }
+        }
         if (!Object.keys(change).length) throw new Error('Nothing to change')
         return summary(await nf.update(requireString(args.id, 'id'), change))
       },

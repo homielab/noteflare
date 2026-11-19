@@ -75,6 +75,17 @@ describe('mergeNotes', () => {
     expect(mergeNotes(dated, { ...dated, title: 'T' }, { ...dated, importedUpdatedAt: undefined })?.importedUpdatedAt).toBeUndefined()
   })
 
+  it('merges reminder on one side with body edit on the other, and honours removal', () => {
+    const ours = { ...base, reminder: 1_700_000_000_000 }
+    const theirs = { ...base, body: 'milk\neggs' }
+    expect(mergeNotes(base, ours, theirs)).toMatchObject({ reminder: 1_700_000_000_000, body: 'milk\neggs' })
+
+    const withRem = { ...base, reminder: 1_700_000_000_000 }
+    const oursRemoved = { ...withRem, reminder: undefined }
+    const theirsUnchanged = { ...withRem, body: 'milk\neggs' }
+    expect(mergeNotes(withRem, oursRemoved, theirsUnchanged)?.reminder).toBeUndefined()
+  })
+
   it('lets this device win small flag clashes instead of making a copy', () => {
     expect(mergeNotes(base, { ...base, color: 'rose' }, { ...base, color: 'sky' })?.color).toBe('rose')
   })

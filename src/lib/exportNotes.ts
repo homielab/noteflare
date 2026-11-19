@@ -18,6 +18,7 @@ const ATTACHMENT_URL = /\/api\/blobs\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 export function toMarkdownFile(n: Note): string {
   const lines = ['---', `title: ${JSON.stringify(n.title)}`]
   if (n.labels.length) lines.push(`tags: [${n.labels.map((l) => JSON.stringify(l)).join(', ')}]`)
+  if (n.reminder) lines.push(`reminder: ${new Date(n.reminder).toISOString()}`)
   if (n.color !== 'default') lines.push(`color: ${n.color}`)
   if (n.pinned) lines.push('pinned: true')
   if (n.archived) lines.push('archived: true')

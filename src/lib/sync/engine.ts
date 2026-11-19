@@ -603,6 +603,7 @@ export class NoteSync {
           body: p.body,
           color: p.color,
           labels: p.labels,
+          reminder: p.reminder,
           pinned: p.pinned && !p.archived,
           archived: p.archived,
           position: p.modifiedAt,
@@ -699,6 +700,7 @@ function sideOf(n: Note): MergeSide {
     archived: n.archived,
     trashedAt: n.trashedAt,
     position: n.position,
+    reminder: n.reminder,
     importedCreatedAt: n.importedCreatedAt,
     importedUpdatedAt: n.importedUpdatedAt,
   }

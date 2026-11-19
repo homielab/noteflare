@@ -128,7 +128,7 @@ async function walk(entry: FileSystemEntry, out: SourceFile[]): Promise<void> {
 
 /**
  * Turn a Markdown file into a note:
- * - YAML frontmatter: `title`, `tags`/`labels`, `color`, `pinned`, `archived`, `created`/`date`, `updated`/`modified` (the rest is dropped)
+ * - YAML frontmatter: `title`, `tags`/`labels`, `reminder`, `color`, `pinned`, `archived`, `created`/`date`, `updated`/`modified` (the rest is dropped)
  * - title: frontmatter → first `# Heading` → file name
  * - labels: tags + the file's folder (relative to the dropped folder)
  */
@@ -171,6 +171,7 @@ export function parseMarkdown(path: string, raw: string, modifiedAt = Date.now()
     body: text.replace(/^\n+/, '').replace(/\s+$/, ''),
     color: NOTE_COLORS.includes(meta.color as NoteColor) ? (meta.color as NoteColor) : 'default',
     labels: [...labels],
+    ...(metaDate(meta.reminder) ? { reminder: metaDate(meta.reminder) } : {}),
     pinned: isTrue(meta.pinned),
     archived: isTrue(meta.archived),
     // Our own export writes `created` / `updated`; other apps often write `date`.

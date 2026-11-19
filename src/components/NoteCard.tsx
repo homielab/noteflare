@@ -7,6 +7,7 @@ import { cipherNoise, VT_CLASS, vtName } from '@/lib/motion'
 import { remeasure, skipWhenOffscreen } from '@/lib/offscreen'
 import { NoteMarkdown } from './NoteMarkdown'
 import { NoteActions, PinButton } from './NoteActions'
+import { ReminderMenu } from './ReminderMenu'
 import { colorVar } from './noteColors'
 import { useI18n } from '@/i18n'
 
@@ -74,7 +75,7 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
 
   useEffect(() => skipWhenOffscreen(cardRef.current!), [])
   // New content, new height: measure before the card may be skipped again.
-  useEffect(() => remeasure(cardRef.current!), [note.title, note.body, note.labels])
+  useEffect(() => remeasure(cardRef.current!), [note.title, note.body, note.labels, note.reminder])
 
   const style = {
     background: colorVar(note.color),
@@ -178,6 +179,12 @@ export const NoteCard = memo(function NoteCard({ note, revealIndex, lifted, focu
           </div>
         ) : (
           !note.title && <p className="text-muted-foreground">{t('card.empty')}</p>
+        )}
+
+        {note.reminder && !note.trashedAt && (
+          <div className="mt-3">
+            <ReminderMenu note={note} onChange={change} variant="chip" />
+          </div>
         )}
 
         {note.labels.length > 0 && (

@@ -49,7 +49,13 @@ export function toPayload(n: Note): NotePayload {
 
 /** True when what the note says changed (not its pin, place or trash state). */
 export function contentChanged(a: NotePayload, b: NotePayload) {
-  return a.title !== b.title || a.body !== b.body || a.color !== b.color || a.labels.join('\u0000') !== b.labels.join('\u0000')
+  return (
+    a.title !== b.title ||
+    a.body !== b.body ||
+    a.color !== b.color ||
+    a.labels.join('\u0000') !== b.labels.join('\u0000') ||
+    a.reminder !== b.reminder
+  )
 }
 
 /** True when two notes would look identical to the user. */
@@ -59,6 +65,7 @@ export function sameContent(a: Note, b: Note) {
     a.body === b.body &&
     a.color === b.color &&
     a.labels.join('\u0000') === b.labels.join('\u0000') &&
+    a.reminder === b.reminder &&
     a.pinned === b.pinned &&
     a.archived === b.archived &&
     !!a.trashedAt === !!b.trashedAt

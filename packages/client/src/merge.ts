@@ -29,6 +29,7 @@ export function mergeNotes(base: MergeSide, ours: MergeSide, theirs: MergeSide):
     archived: pick(base.archived, ours.archived, theirs.archived),
     trashedAt: pick(base.trashedAt, ours.trashedAt, theirs.trashedAt),
     position: pick(base.position, ours.position, theirs.position),
+    reminder: pick(base.reminder, ours.reminder, theirs.reminder),
     // Always present (maybe undefined), so spreading the result over a copy also clears them.
     importedCreatedAt: pick(base.importedCreatedAt, ours.importedCreatedAt, theirs.importedCreatedAt),
     importedUpdatedAt: pick(base.importedUpdatedAt, ours.importedUpdatedAt, theirs.importedUpdatedAt),

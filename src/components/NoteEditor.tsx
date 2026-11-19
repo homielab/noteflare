@@ -13,6 +13,7 @@ import { supportsViewTransitions, VT_CLASS } from '@/lib/motion'
 import { dateLocale, useI18n } from '@/i18n'
 import { NoteMarkdown } from './NoteMarkdown'
 import { NoteActions, PinButton } from './NoteActions'
+import { ReminderMenu } from './ReminderMenu'
 import { LabelMenu } from './LabelMenu'
 import { ImagePlaceholder } from './ImagePlaceholder'
 import { colorVar } from './noteColors'
@@ -292,6 +293,12 @@ export function NoteEditor({ note, transitionName, allLabels, saveState, onSave,
             />
           )}
         </div>
+
+        {draft.reminder && !draft.trashedAt && (
+          <div className="flex flex-wrap gap-1.5 px-5 pb-2">
+            <ReminderMenu note={draft} onChange={change} variant="chip" />
+          </div>
+        )}
 
         {draft.labels.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 px-5 pb-2">

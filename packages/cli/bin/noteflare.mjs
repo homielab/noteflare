@@ -106,6 +106,7 @@ async function main() {
     }
     case 'show': {
       const n = await find(nf, args.join(' '))
+      if (n.reminder) console.log(`Reminder: ${new Date(n.reminder).toISOString()}`)
       return console.log(toMarkdown(n, { frontmatter: false }))
     }
     case 'add': {
@@ -163,6 +164,7 @@ function toMarkdown(n, { frontmatter }) {
   if (frontmatter) {
     lines.push('---', `title: ${JSON.stringify(n.title)}`)
     if (n.labels.length) lines.push(`tags: [${n.labels.map((l) => JSON.stringify(l)).join(', ')}]`)
+    if (n.reminder) lines.push(`reminder: ${new Date(n.reminder).toISOString()}`)
     if (n.color !== 'default') lines.push(`color: ${n.color}`)
     if (n.pinned) lines.push('pinned: true')
     if (n.archived) lines.push('archived: true')

@@ -223,6 +223,36 @@ describe('offline-first sync', () => {
     expect(e.getSnapshot().status.pending).toBe(0)
   })
 
+  it('syncs reminders between two devices and merges concurrent body edits with reminders', async () => {
+    const a = newEngine()
+    await a.start()
+    const note = { ...emptyNote(), title: 'Meeting', body: 'prep slides', reminder: 1_700_000_000_000 }
+    a.upsert(note, { immediate: true })
+    await settle(a)
+
+    const storeB = createLocalStore(`db-${++dbCount}`)
+    const b = new NoteSync(dek, server, storeB, hooks)
+    await b.start()
+    await settle(b)
+    expect(b.getSnapshot().notes.get(note.id)?.reminder).toBe(1_700_000_000_000)
+
+    server.mode = 'offline'
+    b.update(note.id, { body: 'prep slides and demo' }, { immediate: true })
+    await settle(b)
+
+    server.mode = 'up'
+    const newRem = 1_800_000_000_000
+    a.update(note.id, { reminder: newRem }, { immediate: true })
+    await settle(a)
+
+    await b.sync({ reconcile: true })
+    await settle(b)
+
+    const mergedB = b.getSnapshot().notes.get(note.id)!
+    expect(mergedB.body).toBe('prep slides and demo')
+    expect(mergedB.reminder).toBe(newRem)
+  })
+
   it('merges after a restart too (the base survives in the device cache)', async () => {
     const a = newEngine()
     await a.start()

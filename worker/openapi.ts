@@ -74,7 +74,7 @@ export function openApiSpec(origin: string) {
           required: ['id', 'ciphertext', 'iv', 'pinned', 'archived', 'trashedAt', 'position', 'version', 'createdAt', 'updatedAt'],
           properties: {
             id: { type: 'string', format: 'uuid' },
-            ciphertext: { ...b64, description: 'AES-256-GCM(DEK, JSON {title, body, color, labels}), AAD "note:<id>"' },
+            ciphertext: { ...b64, description: 'AES-256-GCM(DEK, JSON {title, body, color, labels, reminder?}), AAD "note:<id>"' },
             iv: { ...b64, description: '12 random bytes' },
             pinned: { type: 'boolean' },
             archived: { type: 'boolean' },

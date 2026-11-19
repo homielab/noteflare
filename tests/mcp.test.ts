@@ -62,21 +62,41 @@ describe('mcp server', () => {
     expect(hits[0].snippet).toContain('flights')
   })
 
-  it('get_note returns the body', async () => {
-    const { call } = setup()
-    expect(JSON.parse(text(await call('get_note', { id: 'n1' }))).body).toBe('Book flights to Da Lat')
-  })
-
-  it('create_note passes the given fields', async () => {
+  it('get_note returns the body and reminder when set', async () => {
     const { nf, call } = setup()
-    await call('create_note', { title: 'New', body: 'x', labels: ['a'] })
-    expect(nf.create).toHaveBeenCalledWith({ title: 'New', body: 'x', labels: ['a'] })
+    const rem = 1_700_000_000_000
+    nf.get.mockResolvedValueOnce(note({ reminder: rem }))
+    const res = JSON.parse(text(await call('get_note', { id: 'n1' })))
+    expect(res.body).toBe('Book flights to Da Lat')
+    expect(res.reminder).toBe(new Date(rem).toISOString())
   })
 
-  it('update_note passes only the given fields and needs at least one', async () => {
+  it('create_note passes the given fields and parses reminder', async () => {
+    const { nf, call } = setup()
+    const iso = '2026-11-20T09:00:00.000Z'
+    await call('create_note', { title: 'New', body: 'x', labels: ['a'], reminder: iso })
+    expect(nf.create).toHaveBeenCalledWith({ title: 'New', body: 'x', labels: ['a'], reminder: Date.parse(iso) })
+
+    const bad = await call('create_note', { title: 'New', reminder: 'not-a-date' })
+    expect(bad.result.isError).toBe(true)
+    expect(text(bad)).toContain('Invalid reminder date')
+  })
+
+  it('update_note passes only the given fields, handles reminder and clear', async () => {
     const { nf, call } = setup()
     await call('update_note', { id: 'n1', pinned: true })
     expect(nf.update).toHaveBeenCalledWith('n1', { pinned: true })
+
+    const iso = '2026-11-20T09:00:00.000Z'
+    await call('update_note', { id: 'n1', reminder: iso })
+    expect(nf.update).toHaveBeenCalledWith('n1', { reminder: Date.parse(iso) })
+
+    await call('update_note', { id: 'n1', reminder: null })
+    expect(nf.update).toHaveBeenCalledWith('n1', { reminder: null })
+
+    const bad = await call('update_note', { id: 'n1', reminder: 'invalid' })
+    expect(bad.result.isError).toBe(true)
+
     const r = await call('update_note', { id: 'n1' })
     expect(r.result.isError).toBe(true)
     expect(text(r)).toBe('Nothing to change')

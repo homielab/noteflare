@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Images, Import, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
+import { Archive, Bell, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Images, Import, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -34,8 +34,9 @@ import { themeTransition } from '@/lib/motion'
 import { ImportDropzone, type ImportHandle } from './ImportDropzone'
 import { ImageLibrary } from './ImageLibrary'
 import { scanLibrary } from '@/lib/library'
+import { useReminderAlerts, withReminders } from '@/lib/reminders'
 
-type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind: 'label'; label: string } | { kind: 'images' }
+type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind: 'label'; label: string } | { kind: 'images' } | { kind: 'reminders' }
 
 const byPosition = (a: Note, b: Note) => b.position - a.position
 const sameView = (a: View, b: View) => a.kind === b.kind && (a.kind !== 'label' || a.label === (b as typeof a).label)
@@ -151,11 +152,18 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     }
   }, [store.notes])
 
+  const reminderCount = useMemo(() => withReminders(store.notes).length, [store.notes])
+
   const library = useMemo(() => scanLibrary(store.notes), [store.notes])
   const showLibrary = attachments || library.images.length + library.files.length > 0
 
   const visible = useMemo(() => {
     const q = appliedQuery.trim().toLocaleLowerCase()
+    if (view.kind === 'reminders') {
+      return withReminders(store.notes).filter(
+        (n) => !q || `${n.title}\n${n.body}\n${n.labels.join(' ')}`.toLocaleLowerCase().includes(q),
+      )
+    }
     return store.notes
       .filter((n) => {
         switch (view.kind) {
@@ -170,8 +178,8 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       .sort(byPosition)
   }, [store.notes, view, appliedQuery])
 
-  const pinned = view.kind === 'trash' ? [] : visible.filter((n) => n.pinned)
-  const others = view.kind === 'trash' ? visible : visible.filter((n) => !n.pinned)
+  const pinned = view.kind === 'trash' || view.kind === 'reminders' ? [] : visible.filter((n) => n.pinned)
+  const others = view.kind === 'trash' || view.kind === 'reminders' ? visible : visible.filter((n) => !n.pinned)
   const ordered = [...pinned, ...others]
   sectionsRef.current = { pinned, others }
   byIdRef.current = store.byId
@@ -243,6 +251,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     // Nothing else moves when a note opens: only its card morphs into the editor.
     if (n) transition(() => setEditing(n), { id })
   }
+  useReminderAlerts(store.notes, open)
   const openFromLibrary = (id: string) => {
     const n = store.byId.get(id)
     if (n) transition(() => setEditing(n), 'none')
@@ -707,6 +716,15 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
           </ul>
           </div>
           <ul className="flex shrink-0 gap-1 sm:gap-2">
+            {(reminderCount > 0 || view.kind === 'reminders') && (
+              <Chip
+                active={view.kind === 'reminders'}
+                onClick={() => go({ kind: 'reminders' })}
+                count={reminderCount}
+                icon={<Bell />}
+                label={t('rem.view')}
+              />
+            )}
             {showLibrary && <Chip active={view.kind === 'images'} onClick={() => go({ kind: 'images' })} count={library.images.length} icon={<Images />} label={t('nb.images')} />}
             <Chip active={view.kind === 'archive'} onClick={() => go({ kind: 'archive' })} count={counts.archive} icon={<Archive />} label={t('nb.archive')} />
             <Chip active={view.kind === 'trash'} onClick={() => go({ kind: 'trash' })} count={counts.trash} icon={<Trash2 />} label={t('nb.trash')} />
@@ -934,7 +952,9 @@ function Empty({ view, query, onNew }: { view: View; query: string; onNew: () =>
         ? t('nb.emptyTrash')
         : view.kind === 'label'
           ? t('nb.emptyLabel')
-          : t('nb.emptyNotes')
+          : view.kind === 'reminders'
+            ? t('rem.empty')
+            : t('nb.emptyNotes')
   return (
     <div className="mt-24 flex flex-col items-center gap-4 text-center">
       <p className="max-w-sm text-muted-foreground">{text}</p>
