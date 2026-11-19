@@ -8,6 +8,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 - Editing a note in this version keeps whatever a newer version of NoteFlare added to it.
 
+### Fixed
+
+- The Update NoteFlare workflow no longer stops with "The update could not be merged automatically" when a new version changes a file your copy doesn't have, such as the workflow files the Deploy button leaves out.
+
 ## [0.9.0] - 2026-11-19
 
 ### Added

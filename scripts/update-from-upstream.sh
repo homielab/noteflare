@@ -10,7 +10,8 @@
 #
 # How it merges:
 # - Code: your own changes are kept where they don't overlap with upstream's; where both
-#   changed the same lines, upstream wins. On the first update everything comes from upstream.
+#   changed the same lines, or one deleted a file the other changed, upstream wins. On the
+#   first update everything comes from upstream.
 # - wrangler.jsonc: yours, plus what changed upstream; where both changed the same lines, yours wins.
 # - .github/workflows: left exactly as they are (KEEP_WORKFLOWS=1, used by the Update workflow,
 #   whose token is not allowed to change workflow files).
@@ -54,18 +55,38 @@ if [ -n "$base" ] && git show "$base:wrangler.jsonc" > "$work/base" 2>/dev/null;
 fi
 
 # Code: a three-way merge computed without touching history.
+# Exit status 1 means conflicts -X theirs can't settle: a file one side deleted and the other
+# changed (e.g. a workflow file the Deploy button left out), renames, a file vs a directory.
+# Those paths are listed after the tree id and settled below; other statuses are errors.
+status=0
 if [ -n "$base" ]; then
-  tree="$(git merge-tree --write-tree -X theirs --merge-base="$base" HEAD "$theirs")" || tree=""
+  git merge-tree --write-tree -z --name-only -X theirs --merge-base="$base" HEAD "$theirs" > "$work/merge" || status=$?
 else
-  tree="$(git merge-tree --write-tree -X theirs --allow-unrelated-histories HEAD "$theirs")" || tree=""
+  git merge-tree --write-tree -z --name-only -X theirs --allow-unrelated-histories HEAD "$theirs" > "$work/merge" || status=$?
+fi
+tree=""
+conflicts=()
+if [ "$status" -le 1 ]; then
+  {
+    IFS= read -r -d '' tree || true
+    while IFS= read -r -d '' path && [ -n "$path" ]; do conflicts+=("$path"); done
+  } < "$work/merge"
 fi
 if [ -z "$tree" ]; then
-  echo "The update could not be merged automatically. Update by hand: see the Update section of the README." >&2
+  echo "The update could not be merged automatically. Update by hand: https://noteflare.homielab.com/start/update/" >&2
   exit 1
 fi
-tree="${tree%%$'\n'*}"
 
 git read-tree -u --reset "$tree"
+
+# Where a conflict is left, upstream wins: its version of the file, or no file if it deleted it.
+for path in ${conflicts[@]+"${conflicts[@]}"}; do
+  if git cat-file -e "$theirs:$path" 2>/dev/null; then
+    git checkout --quiet "$theirs" -- "$path"
+  else
+    git rm -r --quiet --force --ignore-unmatch -- "$path"
+  fi
+done
 
 cp "$work/wrangler.jsonc" wrangler.jsonc
 printf '%s\n' "$theirs" > "$MARKER"
