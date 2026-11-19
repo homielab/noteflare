@@ -147,4 +147,5 @@ export interface SharedNote {
 
 export const SHARE_DAYS = [1, 7, 30, null] as const
 export const MAX_SHARES_PER_USER = 200
-export const SHARE_ID_RE = /^[A-Za-z0-9_-]{22}$/
+/** A shared link's id: 11 characters; links made before v0.9 have 22. */
+export const SHARE_ID_RE = /^(?:[A-Za-z0-9_-]{11}|[A-Za-z0-9_-]{22})$/

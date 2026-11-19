@@ -7,6 +7,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 ### Changed
 
 - The account menu is shorter: Import and Language each open from one row.
+- Share links are about half as long, and just as private. Links you've already sent keep working.
 
 ### Fixed
 

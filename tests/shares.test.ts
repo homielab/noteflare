@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import worker from '../worker/index'
 import { purgeShares } from '../worker/shares'
-import { openShare, sealShare, shareUrl } from '../src/lib/share'
+import { createShareLink, openShare, sealShare, shareUrl } from '../src/lib/share'
+import { api, ApiError } from '../src/lib/api'
 import type { ShareInfo, SharedNote } from '../shared/types'
 
 // Only exists inside the Workers runtime.
@@ -92,7 +93,25 @@ const call = (e: never, method: string, path: string, body?: unknown, host = 'lo
 
 const note = { id: NOTE_ID, title: 'Groceries', body: 'eggs\nmilk' }
 
-afterEach(() => vi.useRealTimers())
+const b64url = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+const b64 = (b: Uint8Array) => btoa(String.fromCharCode(...b))
+
+/** A link as made before v0.9: 16-byte id, AES-256-GCM key. */
+async function sealOldShare() {
+  const id = b64url(crypto.getRandomValues(new Uint8Array(16)))
+  const raw = crypto.getRandomValues(new Uint8Array(32))
+  const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const pt = new TextEncoder().encode(JSON.stringify({ title: note.title, body: note.body }))
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(`share:${id}`) }, key, pt))
+  return { body: { id, noteId: note.id, ciphertext: b64(ct), iv: b64(iv), days: 7 as const }, key: b64url(raw) }
+}
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('share crypto', () => {
   it('round-trips a snapshot, and only with the right key and id', async () => {
@@ -105,12 +124,40 @@ describe('share crypto', () => {
 
   it('never puts the key in what is sent to the server', async () => {
     const { body, key } = await sealShare(note, null)
-    expect(key).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    expect(body.id).toMatch(/^[A-Za-z0-9_-]{22}$/)
+    expect(key).toMatch(/^[A-Za-z0-9_-]{22}$/)
+    expect(body.id).toMatch(/^[A-Za-z0-9_-]{11}$/)
     expect(JSON.stringify(body)).not.toContain(key)
     expect(Object.keys(body).sort()).toEqual(['ciphertext', 'days', 'id', 'iv', 'noteId'])
     expect(JSON.stringify(body)).not.toContain('Groceries')
     expect(shareUrl(body.id, key, 'https://n.example')).toBe(`https://n.example/s/${body.id}#${key}`)
+  })
+
+  it('still opens a link made in the old, longer format', async () => {
+    const { body, key } = await sealOldShare()
+    expect(body.id).toHaveLength(22)
+    expect(key).toHaveLength(43)
+    expect(await openShare(body.id, key, body.ciphertext, body.iv)).toEqual({ title: 'Groceries', body: 'eggs\nmilk' })
+  })
+
+  it('seals again under a new id when the id is taken', async () => {
+    vi.stubGlobal('location', { origin: 'https://n.example' })
+    const sent: string[] = []
+    vi.spyOn(api, 'createShare').mockImplementation(async (body) => {
+      sent.push(body.id)
+      if (sent.length === 1) throw new ApiError(409, { error: 'conflict' })
+      return { id: body.id, noteId: body.noteId, expiresAt: null, createdAt: 1 }
+    })
+    const { url, info } = await createShareLink(note, null)
+    expect(sent).toHaveLength(2)
+    expect(sent[1]).not.toBe(sent[0])
+    expect(info.id).toBe(sent[1])
+    expect(url).toContain(`/s/${sent[1]}#`)
+  })
+
+  it('does not retry other refusals', async () => {
+    const create = vi.spyOn(api, 'createShare').mockRejectedValue(new ApiError(409, { error: 'too_many_shares' }))
+    await expect(createShareLink(note, null)).rejects.toBeInstanceOf(ApiError)
+    expect(create).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -186,6 +233,37 @@ describe('share routes', () => {
     expect(db.shares).toHaveLength(0)
   })
 
+  it('serves a link made in the old format', async () => {
+    const db = fakeDb()
+    const old = await sealOldShare()
+    expect((await call(devEnv(db), 'POST', '/api/shares', old.body)).status).toBe(201)
+    const pub = await call(accessEnv(db), 'GET', `/api/share/${old.body.id}`, undefined, 'notes.example.com')
+    expect(pub.status).toBe(200)
+    const shared = (await pub.json()) as SharedNote
+    expect(await openShare(old.body.id, old.key, shared.ciphertext, shared.iv)).toEqual({ title: 'Groceries', body: 'eggs\nmilk' })
+  })
+
+  it('never replaces a link whose id is taken', async () => {
+    const db = fakeDb()
+    const { sealed } = await create(db)
+    const stored = { ...db.shares[0] }
+    const again = await sealShare(note, 30)
+    const res = await call(devEnv(db), 'POST', '/api/shares', { ...again.body, id: sealed.body.id })
+    expect(res.status).toBe(409)
+    expect(((await res.json()) as { error: string }).error).toBe('conflict')
+    expect(db.shares).toEqual([stored])
+  })
+
+  it('rejects ids of any other length or alphabet', async () => {
+    const db = fakeDb()
+    const { body } = await sealShare(note, 7)
+    for (const id of ['A'.repeat(10), 'A'.repeat(12), 'A'.repeat(21), 'A'.repeat(23), 'A'.repeat(43), 'A'.repeat(10) + '+', 'A'.repeat(10) + '/', 'A'.repeat(21) + '=']) {
+      expect((await call(devEnv(db), 'POST', '/api/shares', { ...body, id })).status).toBe(400)
+      expect((await call(accessEnv(db), 'GET', `/api/share/${encodeURIComponent(id)}`, undefined, 'notes.example.com')).status).toBe(404)
+    }
+    expect(db.shares).toHaveLength(0)
+  })
+
   it('rejects malformed links', async () => {
     const db = fakeDb()
     const { body } = await sealShare(note, 7)
@@ -193,6 +271,20 @@ describe('share routes', () => {
       expect((await call(devEnv(db), 'POST', '/api/shares', bad)).status).toBe(400)
     }
     expect(db.shares).toHaveLength(0)
+  })
+
+  it('accepts both link formats in the share page script', async () => {
+    const html = await (await call(accessEnv(fakeDb()), 'GET', `/s/${'A'.repeat(11)}`, undefined, 'notes.example.com')).text()
+    const [idRe, keyRe] = [...html.matchAll(/if \(!\/(\^.+?\$)\/\.test\((id|key)\)\)/g)].map((m) => new RegExp(m[1]))
+    const fresh = await sealShare(note, 7)
+    const old = await sealOldShare()
+    for (const s of [fresh, old]) {
+      expect(idRe.test(s.body.id)).toBe(true)
+      expect(keyRe.test(s.key)).toBe(true)
+    }
+    expect(idRe.test('A'.repeat(12))).toBe(false)
+    expect(keyRe.test('A'.repeat(23))).toBe(false)
+    expect(keyRe.test('')).toBe(false)
   })
 
   it('serves the share page publicly with a strict CSP', async () => {

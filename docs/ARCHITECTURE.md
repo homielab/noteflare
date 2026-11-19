@@ -60,7 +60,7 @@ D1 holds the data in these tables (plus `settings` for the app's own setup).
 - **`vaults`**, one row per user: Argon2id salt and parameters, the data key wrapped by the passphrase key, and the data key wrapped by the recovery key.
 - **`notes`**, keyed by user and note id: `ciphertext` and `iv`, plus the plaintext fields the server needs to sort and filter (`pinned`, `archived`, `trashed_at`, `position`), a `version` counter and timestamps.
 - **`passkeys`**: per user, the credential id, a name, the PRF salt and one more wrapped copy of the data key.
-- **`shares`**: read-only links to one note. Per link: a random id, the note id, the snapshot's `ciphertext` and `iv`, an expiry and a timestamp. The snapshot is `{ title, body }` encrypted with AES-256-GCM under a fresh key per link (additional data `share:<id>`); the key exists only in the link's `#fragment`.
+- **`shares`**: read-only links to one note. Per link: a random id, the note id, the snapshot's `ciphertext` and `iv`, an expiry and a timestamp. The snapshot is `{ title, body }` encrypted with AES-GCM under a fresh random 128-bit key per link (additional data `share:<id>`); the key exists only in the link's `#fragment`. A link is `/s/<11-character id>#<22-character key>`; links made before v0.9 (22-character id, 256-bit key in 43 characters) keep working.
 - **`api_tokens`**: token name, scope, prefix, SHA-256 hash, expiry and last use. The token itself is never stored.
 
 Inside a note's ciphertext is JSON: `{ title, body, color, labels }`, plus `importedCreatedAt` / `importedUpdatedAt` for imported notes (their original dates; the row's `updated_at` stays the server's clock, because it is the sync cursor). See [SECURITY.md](../SECURITY.md) for exactly what is and isn't visible to the server.

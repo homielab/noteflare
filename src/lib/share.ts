@@ -5,7 +5,7 @@
  * worker/shares.ts serves the page that decrypts it, with the same format.
  */
 import type { CreateShareBody, ShareInfo } from '../../shared/types'
-import { api } from './api'
+import { api, ApiError } from './api'
 
 type Days = CreateShareBody['days']
 
@@ -22,10 +22,14 @@ export interface SealedShare {
   key: string
 }
 
-/** Encrypt a snapshot of a note for a new link. */
+/**
+ * Encrypt a snapshot of a note for a new link.
+ * The id is only an address (8 random bytes); the key is a single-use AES-128-GCM key (16 random bytes).
+ * Links made before v0.9 have a 16-byte id and a 32-byte key; openShare and the share page read both.
+ */
 export async function sealShare(note: { id: string; title: string; body: string }, days: Days): Promise<SealedShare> {
-  const id = b64url(crypto.getRandomValues(new Uint8Array(16)))
-  const raw = crypto.getRandomValues(new Uint8Array(32))
+  const id = b64url(crypto.getRandomValues(new Uint8Array(8)))
+  const raw = crypto.getRandomValues(new Uint8Array(16))
   const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt'])
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const pt = new TextEncoder().encode(JSON.stringify({ title: note.title, body: note.body }))
@@ -45,7 +49,15 @@ export const shareUrl = (id: string, key: string, origin = location.origin) => `
 
 /** Create a link to a note and return it with its info. */
 export async function createShareLink(note: { id: string; title: string; body: string }, days: Days): Promise<{ url: string; info: ShareInfo }> {
-  const sealed = await sealShare(note, days)
-  const info = await api.createShare(sealed.body)
-  return { url: shareUrl(sealed.body.id, sealed.key), info }
+  for (let attempt = 1; ; attempt++) {
+    const sealed = await sealShare(note, days)
+    try {
+      const info = await api.createShare(sealed.body)
+      return { url: shareUrl(sealed.body.id, sealed.key), info }
+    } catch (e) {
+      // The id is taken (the server never overwrites a link): seal again under a new one.
+      const taken = e instanceof ApiError && e.status === 409 && (e.body as { error?: string } | null)?.error === 'conflict'
+      if (!taken || attempt >= 3) throw e
+    }
+  }
 }

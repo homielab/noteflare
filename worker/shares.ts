@@ -164,8 +164,8 @@ export function sharePage(nonce: string): string {
   const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4)), (c) => c.charCodeAt(0));
   const id = location.pathname.split('/')[2] || '';
   const key = location.hash.slice(1);
-  if (!/^[A-Za-z0-9_-]{22}$/.test(id)) return fail(t.gone);
-  if (!/^[A-Za-z0-9_-]{43}$/.test(key)) return fail(t.noKey);
+  if (!/^(?:[A-Za-z0-9_-]{11}|[A-Za-z0-9_-]{22})$/.test(id)) return fail(t.gone);
+  if (!/^(?:[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$/.test(key)) return fail(t.noKey);
   let res;
   try { res = await fetch('/api/share/' + id, { cache: 'no-store', credentials: 'omit' }); } catch { return fail(t.net); }
   if (res.status === 404) return fail(t.gone);
