@@ -28,6 +28,11 @@ export class ApiError extends Error {
  * everything the server answered surfaces as ApiError.
  */
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  // The demo build answers from the browser; the flag is fixed at build time, so the normal build drops this.
+  if (import.meta.env.VITE_DEMO === '1') {
+    const { demoServer } = await import('./demo')
+    return (await demoServer.handle(init?.method ?? 'GET', path, init?.body ? JSON.parse(String(init.body)) : undefined)) as T
+  }
   const res = await fetch(`/api${path}`, {
     credentials: 'same-origin',
     cache: 'no-store',
@@ -46,6 +51,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Binary requests (attachments). GETs may use the HTTP cache: the ciphertext for an id never changes. */
 async function raw(path: string, init?: RequestInit): Promise<Response> {
+  if (import.meta.env.VITE_DEMO === '1') throw new ApiError(404, { error: 'not_in_demo' }) // no attachment storage or server backups
   const res = await fetch(`/api${path}`, { credentials: 'same-origin', redirect: 'manual', ...init })
   if (res.type === 'opaqueredirect') throw new ApiError(401, null)
   if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null))
@@ -59,6 +65,7 @@ export interface PutBlobOptions {
 
 /** Upload with progress and cancel, which fetch can't do. Network failures are TypeErrors, as with fetch. */
 function putBlobWithProgress(id: string, data: Uint8Array<ArrayBuffer>, { onProgress, signal }: PutBlobOptions): Promise<void> {
+  if (import.meta.env.VITE_DEMO === '1') return Promise.reject(new ApiError(404, { error: 'not_in_demo' }))
   return new Promise((resolve, reject) => {
     const aborted = () => new DOMException('Aborted', 'AbortError')
     if (signal?.aborted) return reject(aborted())

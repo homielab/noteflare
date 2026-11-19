@@ -11,7 +11,7 @@
 
 A simple, private, serverless notes app — end-to-end encrypted, completely free to run, and yours to customize.
 
-[Documentation](https://noteflare.homielab.com) · [English](README.md) · [Tiếng Việt](README.vi.md)
+[Documentation](https://noteflare.homielab.com) · [Try the demo](https://noteflare.homielab.com/demo/) · [English](README.md) · [Tiếng Việt](README.vi.md)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/homielab/noteflare)
 

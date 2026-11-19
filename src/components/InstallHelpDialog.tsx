@@ -15,7 +15,7 @@ export function InstallHelpDialog({ open, onOpenChange }: { open: boolean; onOpe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <img src="/favicon.svg" alt="" className="mb-1 size-14" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="mb-1 size-14" />
           <DialogTitle>{t('ios.title')}</DialogTitle>
           <DialogDescription>{t('ios.body')}</DialogDescription>
         </DialogHeader>

@@ -28,7 +28,7 @@ export function setupPwa() {
     emit()
   })
 
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+  if (!import.meta.env.PROD || import.meta.env.VITE_DEMO === '1' || !('serviceWorker' in navigator)) return
   let hadController = !!navigator.serviceWorker.controller
   let updateRequested = false
   let reloading = false

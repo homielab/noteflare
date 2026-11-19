@@ -89,7 +89,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    void passkeysSupported().then(setPasskeySupport)
+    if (import.meta.env.VITE_DEMO !== '1') void passkeysSupported().then(setPasskeySupport) // passkeys need the server
   }, [])
   const pendingDek = useRef<CryptoKey | null>(null)
 
@@ -105,6 +105,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         setAttachments(!!me.attachments)
         if (!me.hasVault) return setStatus('setup')
         await keepRecord(await api.getVault())
+        // The demo opens unlocked; its passphrase is shown in the banner for Lock / unlock.
+        if (import.meta.env.VITE_DEMO === '1' && record.current) {
+          const { DEMO_PASSPHRASE } = await import('./demo')
+          setDek(await unlockWithPassphrase(record.current, DEMO_PASSPHRASE))
+          return setStatus('unlocked')
+        }
         setStatus('locked')
       } catch (e) {
         if (e instanceof ApiError) {

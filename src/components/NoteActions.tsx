@@ -66,10 +66,15 @@ export function NoteActions({ note, onChange, onDeleteForever, onCopy }: Props) 
       >
         {note.archived ? <ArchiveRestore /> : <Archive />}
       </Act>
-      <Act label={t('act.share')} onClick={() => setSharing(true)}>
-        <Share2 />
-      </Act>
-      <ShareDialog note={note} open={sharing} onOpenChange={setSharing} />
+      {/* Shared links are served by the Worker: not in the demo. */}
+      {import.meta.env.VITE_DEMO !== '1' && (
+        <>
+          <Act label={t('act.share')} onClick={() => setSharing(true)}>
+            <Share2 />
+          </Act>
+          <ShareDialog note={note} open={sharing} onOpenChange={setSharing} />
+        </>
+      )}
       <Act label={t('act.copy')} onClick={onCopy}>
         <Copy />
       </Act>

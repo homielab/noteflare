@@ -7,6 +7,8 @@ import { lazy, Suspense } from 'react'
 
 import { loadNotebook } from '@/lib/lazy'
 
+const DemoBanner = import.meta.env.VITE_DEMO === '1' ? lazy(() => import('@/lib/demo').then((m) => ({ default: m.DemoBanner }))) : null
+
 const Notebook = lazy(() => loadNotebook().then((m) => ({ default: m.Notebook })))
 
 function Gate() {
@@ -55,6 +57,11 @@ function Centered({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <I18nProvider>
+      {DemoBanner && (
+        <Suspense fallback={null}>
+          <DemoBanner />
+        </Suspense>
+      )}
       <VaultProvider>
         <Gate />
       </VaultProvider>

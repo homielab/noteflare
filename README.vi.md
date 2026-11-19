@@ -11,7 +11,7 @@
 
 App ghi chú đơn giản, riêng tư, không cần máy chủ — mã hoá đầu-cuối, chạy miễn phí hoàn toàn, tuỳ biến theo ý bạn.
 
-[Tài liệu](https://noteflare.homielab.com/vi/) · [English](README.md) · [Tiếng Việt](README.vi.md)
+[Tài liệu](https://noteflare.homielab.com/vi/) · [Dùng thử bản demo](https://noteflare.homielab.com/demo/) · [English](README.md) · [Tiếng Việt](README.vi.md)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/homielab/noteflare)
 

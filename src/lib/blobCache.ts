@@ -137,4 +137,4 @@ export function createBlobCache(name = 'noteflare-blobs', opts: { maxFullBytes?:
 }
 
 /** The app-wide cache. */
-export const blobCache = createBlobCache()
+export const blobCache = createBlobCache(import.meta.env.VITE_DEMO === '1' ? 'noteflare-demo-blobs' : 'noteflare-blobs')

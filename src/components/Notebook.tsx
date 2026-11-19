@@ -496,7 +496,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       <header className="sticky top-0 z-30 border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-md" style={{ viewTransitionName: 'site-header' }}>
         <div className="mx-auto flex h-16 max-w-[84rem] items-center gap-3 px-3 sm:px-6">
           <a
-            href="/"
+            href={import.meta.env.BASE_URL}
             className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             aria-label="NoteFlare"
             onClick={(e) => {
@@ -508,7 +508,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
               window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
             }}
           >
-            <img src="/favicon.svg" alt="" className="size-8" />
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
             <span className="text-lg font-semibold tracking-tight max-sm:hidden">NoteFlare</span>
           </a>
 
@@ -640,12 +640,17 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setIntOpen(true)}>
-                  <Plug /> {t('nb.integrations')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setPwOpen(true)}>
-                  <KeyRound /> {t('nb.changePassphrase')}
-                </DropdownMenuItem>
+                {/* The demo has no server for tokens, and its passphrase is fixed (shown in the banner). */}
+                {import.meta.env.VITE_DEMO !== '1' && (
+                  <>
+                    <DropdownMenuItem onSelect={() => setIntOpen(true)}>
+                      <Plug /> {t('nb.integrations')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setPwOpen(true)}>
+                      <KeyRound /> {t('nb.changePassphrase')}
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {passkeySupport && (
                   <DropdownMenuItem onSelect={() => setPkOpen(true)}>
                     <Fingerprint /> {t('nb.passkeys')}
@@ -671,9 +676,11 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                 <DropdownMenuItem onSelect={() => transition(lock)}>
                   <Lock /> {t('nb.lockNow')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => void handleSignOut()}>
-                  <LogOut /> {t('nb.signOut')}
-                </DropdownMenuItem>
+                {import.meta.env.VITE_DEMO !== '1' && (
+                  <DropdownMenuItem onSelect={() => void handleSignOut()}>
+                    <LogOut /> {t('nb.signOut')}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

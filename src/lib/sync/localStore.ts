@@ -135,4 +135,4 @@ export function createLocalStore(name = 'noteflare'): LocalStore {
 }
 
 /** The app-wide store. */
-export const localStore = createLocalStore()
+export const localStore = createLocalStore(import.meta.env.VITE_DEMO === '1' ? 'noteflare-demo' : 'noteflare')

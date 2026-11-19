@@ -34,7 +34,7 @@ function Frame({ children }: { children: ReactNode }) {
       <CipherWall />
       <div className="relative w-full max-w-md animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
         <div className="mb-8 flex items-center gap-2.5">
-          <img src="/favicon.svg" alt="" className="size-8" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-8" />
           <span className="text-lg font-semibold tracking-tight">NoteFlare</span>
         </div>
         {children}

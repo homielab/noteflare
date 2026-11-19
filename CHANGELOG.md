@@ -4,6 +4,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- A live demo you can try in your browser, with sample notes and nothing to deploy.
+
 ### Changed
 
 - The account menu is shorter: Import and Language each open from one row.

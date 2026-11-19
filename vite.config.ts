@@ -2,7 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -51,10 +51,31 @@ function walk(dir: string): string[] {
   })
 }
 
+/**
+ * `bun run build:demo` (VITE_DEMO=1): the app with an in-browser backend, served from /demo/ on the docs site.
+ * No service worker and no install manifest: a static page anyone can open.
+ */
+const demo = process.env.VITE_DEMO === '1'
+
+function demoHtml(): Plugin {
+  return {
+    name: 'noteflare-demo-html',
+    transformIndexHtml: (html) =>
+      html
+        .replace(/\s*<!-- use-credentials[^\n]*\n\s*<link rel="manifest"[^>]*>/, '')
+        .replace('<title>NoteFlare</title>', '<title>NoteFlare demo</title>'),
+    // Public files only a deployment uses: Worker headers, the install manifest and its screenshots.
+    closeBundle() {
+      for (const f of ['_headers', 'manifest.webmanifest', 'screenshots']) rmSync(join(root, 'dist-demo', f), { recursive: true, force: true })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), serviceWorker()],
+  base: demo ? '/demo/' : '/',
+  plugins: [react(), tailwindcss(), demo ? demoHtml() : serviceWorker()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   // Dev: `bun run dev:api` (wrangler, port 8787) + `bun run dev` (vite). The service worker is build-only.
   server: { proxy: { '/api': { target: 'http://localhost:8787', ws: true } } },
-  build: { outDir: 'dist' },
+  build: { outDir: demo ? 'dist-demo' : 'dist' },
 })

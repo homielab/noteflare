@@ -32,7 +32,7 @@ export function useNotes(dek: CryptoKey) {
 
   useEffect(() => {
     void engine.start()
-    const stopLive = startLiveSync(() => void engine.sync())
+    const stopLive = import.meta.env.VITE_DEMO === '1' ? () => {} : startLiveSync(() => void engine.sync())
 
     const onOnline = () => void engine.sync({ reconcile: true })
     const onOffline = () => engine.markOffline()

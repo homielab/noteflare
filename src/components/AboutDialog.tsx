@@ -36,7 +36,7 @@ export function AboutDialog({ open, onOpenChange, tab, onTabChange, updates, onC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-[min(42rem,calc(var(--vvh,100dvh)-2rem))] max-w-xl grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-5 overflow-hidden">
         <div className="flex items-center gap-3.5 pr-6">
-          <img src="/favicon.svg" alt="" className="size-12 shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-12 shrink-0" />
           <div className="min-w-0">
             <DialogTitle className="flex flex-wrap items-baseline gap-x-2">
               NoteFlare

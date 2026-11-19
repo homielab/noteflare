@@ -29,6 +29,8 @@ Open http://localhost:5173. Locally you're signed in as `DEV_USER_EMAIL`; this o
 
 To see the offline mode, run `bun run build && bun run dev:api` and open http://localhost:8787. The service worker exists only in production builds.
 
+The demo (no server: the API is answered from the browser's IndexedDB, see `src/lib/demo/`) runs with `bun run dev:demo` (open http://localhost:5173/demo/); `bun run build:demo` writes it to `dist-demo/` for serving under `/demo/`. Demo code sits behind `import.meta.env.VITE_DEMO === '1'` checks, so the normal build leaves it out.
+
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the pieces fit together.
 
 ## Before you open a pull request
