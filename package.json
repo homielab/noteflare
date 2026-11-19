@@ -1,7 +1,7 @@
 {
   "name": "noteflare",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Keep your notes on Cloudflare. Keep them to yourself. Google Keep–style notes with end-to-end encryption on Cloudflare Workers + D1.",
   "license": "MIT",
   "repository": {
