@@ -4,6 +4,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Changed
+
+- Editing a note in this version keeps whatever a newer version of NoteFlare added to it.
+
 ## [0.9.0] - 2026-11-19
 
 ### Added

@@ -609,6 +609,7 @@ export class NoteSync {
           position: p.modifiedAt,
           importedCreatedAt: p.createdAt ?? p.modifiedAt,
           importedUpdatedAt: p.modifiedAt,
+          ...(p.extra && { extra: p.extra }),
         }
         const { ciphertext, iv } = await encryptNote(this.dek, note.id, toPayload(note))
         return { note, row: localRow(note, ciphertext, iv) }
@@ -703,6 +704,7 @@ function sideOf(n: Note): MergeSide {
     reminder: n.reminder,
     importedCreatedAt: n.importedCreatedAt,
     importedUpdatedAt: n.importedUpdatedAt,
+    extra: n.extra,
   }
 }
 

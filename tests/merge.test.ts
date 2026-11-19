@@ -59,6 +59,19 @@ describe('mergeSet', () => {
 describe('mergeNotes', () => {
   const base: MergeSide = { title: 'Groceries', body: 'milk', color: 'default', labels: [], pinned: false, archived: false, trashedAt: null, position: 1 }
 
+  it('keeps unknown fields per key, like the small flags', () => {
+    const withExtra = { ...base, extra: { a: { n: 1 }, b: 'x' } }
+    // Changed on one side only: kept, whichever side.
+    expect(mergeNotes(withExtra, { ...withExtra, title: 'T' }, { ...withExtra, extra: { a: { n: 2 }, b: 'x' } })).toMatchObject({ title: 'T', extra: { a: { n: 2 }, b: 'x' } })
+    expect(mergeNotes(withExtra, { ...withExtra, extra: { a: { n: 1 }, b: 'y' } }, { ...withExtra, body: 'eggs' })?.extra).toEqual({ a: { n: 1 }, b: 'y' })
+    // Equal values from separate parses count as unchanged; added on one side is kept.
+    expect(mergeNotes(withExtra, { ...withExtra, extra: { a: { n: 1 }, b: 'x' } }, { ...withExtra, extra: { a: { n: 1 }, b: 'x', c: true } })?.extra).toEqual({ a: { n: 1 }, b: 'x', c: true })
+    // Removed on one side: removed. Both changed: ours wins.
+    expect(mergeNotes(withExtra, { ...withExtra, extra: { a: { n: 1 } } }, withExtra)?.extra).toEqual({ a: { n: 1 } })
+    expect(mergeNotes(withExtra, { ...withExtra, extra: { b: 'o' } }, { ...withExtra, extra: { b: 't' } })?.extra).toEqual({ b: 'o' })
+    expect(mergeNotes(base, { ...base, title: 'T' }, base)?.extra).toBeUndefined()
+  })
+
   it('merges title on one side with body and color on the other', () => {
     const ours = { ...base, title: 'Groceries – Saturday' }
     const theirs = { ...base, body: 'milk\neggs', color: 'sage' as const }

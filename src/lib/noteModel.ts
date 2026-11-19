@@ -17,7 +17,7 @@ export type NotePatch = Partial<Omit<Note, 'id' | 'version' | 'createdAt' | 'upd
 
 /** A new note with the same content (new id, not pinned, not trashed, first in its section). */
 export function copyNote(n: Note): Note {
-  return { ...emptyNote(), title: n.title, body: n.body, color: n.color, labels: [...n.labels], archived: n.archived }
+  return { ...emptyNote(), title: n.title, body: n.body, color: n.color, labels: [...n.labels], archived: n.archived, ...(n.extra && { extra: n.extra }) }
 }
 
 export function emptyNote(): Note {
@@ -66,6 +66,7 @@ export function sameContent(a: Note, b: Note) {
     a.color === b.color &&
     a.labels.join('\u0000') === b.labels.join('\u0000') &&
     a.reminder === b.reminder &&
+    JSON.stringify(a.extra) === JSON.stringify(b.extra) &&
     a.pinned === b.pinned &&
     a.archived === b.archived &&
     !!a.trashedAt === !!b.trashedAt

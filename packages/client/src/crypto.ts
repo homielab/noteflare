@@ -37,7 +37,15 @@ export interface NotePayload {
   importedCreatedAt?: number
   /** Original last-edit date (ms) of an imported note; dropped on its first edit here. */
   importedUpdatedAt?: number
+  /**
+   * Top-level fields this version doesn't know (written by a newer app), kept as they are
+   * so saving the note doesn't delete them. Not shown anywhere.
+   */
+  extra?: Record<string, unknown>
 }
+
+/** Fields of the encrypted JSON this version understands; every other key goes to `extra`. */
+const KNOWN_FIELDS: ReadonlySet<string> = new Set(['title', 'body', 'color', 'labels', 'reminder', 'importedCreatedAt', 'importedUpdatedAt'])
 
 export const NOTE_COLORS = ['default', 'sand', 'sage', 'sky', 'lilac', 'rose', 'clay', 'slate'] as const
 export type NoteColor = (typeof NOTE_COLORS)[number]
@@ -154,7 +162,7 @@ export async function encryptNote(dek: CryptoKey, id: string, payload: NotePaylo
   const ct = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv, additionalData: enc(`note:${id}`) },
     dek,
-    enc(JSON.stringify(payload)),
+    enc(JSON.stringify(plaintext(payload))),
   )
   return { ciphertext: toB64(new Uint8Array(ct)), iv: toB64(iv) }
 }
@@ -170,7 +178,8 @@ export async function decryptNote(
     dek,
     fromB64(ciphertext),
   )
-  const raw = JSON.parse(new TextDecoder().decode(pt)) as Partial<NotePayload>
+  const raw = JSON.parse(new TextDecoder().decode(pt)) as Partial<NotePayload> & Record<string, unknown>
+  const extra = Object.fromEntries(Object.entries(raw).filter(([k]) => !KNOWN_FIELDS.has(k)))
   return {
     title: typeof raw.title === 'string' ? raw.title : '',
     body: typeof raw.body === 'string' ? raw.body : '',
@@ -179,10 +188,11 @@ export async function decryptNote(
     ...dateField('reminder', raw.reminder),
     ...dateField('importedCreatedAt', raw.importedCreatedAt),
     ...dateField('importedUpdatedAt', raw.importedUpdatedAt),
+    ...extraField(extra),
   }
 }
 
-/** Plaintext of a note: the optional import dates only when set. */
+/** Plaintext of a note: the optional fields only when set. */
 export function notePayload(n: NotePayload): NotePayload {
   return {
     title: n.title,
@@ -192,7 +202,17 @@ export function notePayload(n: NotePayload): NotePayload {
     ...dateField('reminder', n.reminder),
     ...dateField('importedCreatedAt', n.importedCreatedAt),
     ...dateField('importedUpdatedAt', n.importedUpdatedAt),
+    ...extraField(n.extra),
   }
+}
+
+/** The JSON that is encrypted: unknown fields at the top level again, known fields winning a name clash. */
+function plaintext({ extra, ...known }: NotePayload): Record<string, unknown> {
+  return extra ? { ...extra, ...known } : known
+}
+
+function extraField(extra: Record<string, unknown> | undefined): { extra?: Record<string, unknown> } {
+  return extra && Object.keys(extra).length ? { extra } : {}
 }
 
 /** The dates to show for a note: the original ones for an imported note. */

@@ -96,7 +96,7 @@ async function main() {
   switch (command) {
     case 'ls': {
       const notes = await nf.list({ archived: flags.all, label: flags.label })
-      if (flags.json) return console.log(JSON.stringify(notes, null, 2))
+      if (flags.json) return console.log(JSON.stringify(notes.map(({ extra: _extra, ...n }) => n), null, 2))
       for (const n of notes) {
         const mark = n.pinned ? '★' : n.archived ? '▢' : ' '
         const tags = n.labels.length ? `  #${n.labels.join(' #')}` : ''

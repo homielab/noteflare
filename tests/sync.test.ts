@@ -487,3 +487,63 @@ describe('sign-out wipe', () => {
     expect(await reopened.allOutbox()).toEqual([])
   })
 })
+
+describe('fields from a newer app version', () => {
+  const extra = { future: { kind: 'checklist', items: [1, 2] } }
+  const readServer = async (id: string) => {
+    const row = server.rows.get(id)!
+    return decryptNote(dek, id, row.ciphertext, row.iv)
+  }
+  const seed = async (title: string) => {
+    const note = emptyNote()
+    const { ciphertext, iv } = await encryptNote(dek, note.id, { title, body: 'milk', color: 'default', labels: [], extra })
+    await server.putNote(note.id, { ciphertext, iv, pinned: false, archived: false, trashedAt: null, position: 1, baseVersion: 0 })
+    return note.id
+  }
+
+  it('keeps them through an edit, a reload from the device cache and a copy', async () => {
+    const id = await seed('Old')
+    const a = newEngine()
+    await a.start()
+    await settle(a)
+    a.update(id, { title: 'New' }, { immediate: true })
+    await settle(a)
+    expect(await readServer(id)).toMatchObject({ title: 'New', extra })
+    await until(async () => (await store.allOutbox()).length === 0)
+    a.stop()
+
+    // Reload offline: the note comes from the device cache and is edited again.
+    server.mode = 'offline'
+    const b = newEngine()
+    await b.start()
+    expect(b.getSnapshot().notes.get(id)?.extra).toEqual(extra)
+    b.update(id, { title: 'Newer' }, { immediate: true })
+    await settle(b)
+    server.mode = 'up'
+    await b.sync()
+    await settle(b)
+    expect(await readServer(id)).toMatchObject({ title: 'Newer', extra })
+    b.stop()
+  })
+
+  it('keeps a change made elsewhere when both devices edited the note', async () => {
+    const id = await seed('Groceries')
+    const e = newEngine()
+    await e.start()
+    await settle(e)
+    server.mode = 'offline'
+    e.update(id, { title: 'Groceries – Saturday' }, { immediate: true })
+    await settle(e)
+    // The newer app changes only its own field meanwhile.
+    server.mode = 'up'
+    const cur = server.rows.get(id)!
+    const changed = { future: { kind: 'checklist', items: [1, 2, 3] } }
+    const { ciphertext, iv } = await encryptNote(dek, id, { title: 'Groceries', body: 'milk', color: 'default', labels: [], extra: changed })
+    await server.putNote(id, { ciphertext, iv, pinned: false, archived: false, trashedAt: null, position: 1, baseVersion: cur.version })
+
+    await e.sync({ reconcile: true })
+    await settle(e)
+    expect(await readServer(id)).toMatchObject({ title: 'Groceries – Saturday', extra: changed })
+    e.stop()
+  })
+})

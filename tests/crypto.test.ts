@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PutNoteBody } from '../shared/types'
 import {
-  createVault, decryptNote, encryptNote, normalizeRecoveryCode, rewrapVault,
+  createVault, decryptNote, encryptNote, fromB64, normalizeRecoveryCode, notePayload, rewrapVault,
   unlockWithPassphrase, unlockWithRecovery, UnsafeKdfError, WrongSecretError,
 } from '../src/lib/crypto'
 
@@ -56,6 +56,28 @@ describe('vault', () => {
     expect(wire.includes('reminder')).toBe(false)
     expect(wire.includes(String(reminderTime))).toBe(false)
     expect(enc.ciphertext.includes(String(reminderTime))).toBe(false)
+  }, 30_000)
+
+  it('keeps fields it does not know, at the top level of the plaintext', async () => {
+    const { dek } = await createVault('pass-extra')
+    const plainKeys = async (e: { ciphertext: string; iv: string }) => {
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(e.iv), additionalData: new TextEncoder().encode(`note:${id}`) }, dek, fromB64(e.ciphertext))
+      return JSON.parse(new TextDecoder().decode(pt)) as Record<string, unknown>
+    }
+    const future = { future: { nested: [1, 'two', null] }, flag: false }
+    const enc = await encryptNote(dek, id, { ...note, extra: future })
+    expect(await plainKeys(enc)).toEqual({ ...note, ...future })
+    const read = await decryptNote(dek, id, enc.ciphertext, enc.iv)
+    expect(read).toEqual({ ...note, extra: future })
+    // Edited and saved again: the unknown fields come back unchanged.
+    const again = await encryptNote(dek, id, notePayload({ ...read, title: 'Mới' }))
+    expect(await decryptNote(dek, id, again.ciphertext, again.iv)).toEqual({ ...note, title: 'Mới', extra: future })
+
+    // Without unknown fields the plaintext has the same keys as before.
+    expect(Object.keys(await plainKeys(await encryptNote(dek, id, notePayload(note))))).toEqual(['title', 'body', 'color', 'labels'])
+    // An invalid known field is dropped, not kept as unknown; a known field wins a name clash.
+    const bad = await encryptNote(dek, id, { ...note, reminder: 'soon', extra: { title: 'shadow' } } as never)
+    expect(await decryptNote(dek, id, bad.ciphertext, bad.iv)).toEqual(note)
   }, 30_000)
 
   it('binds ciphertext to note id (AAD)', async () => {

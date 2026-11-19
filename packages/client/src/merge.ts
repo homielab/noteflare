@@ -33,7 +33,29 @@ export function mergeNotes(base: MergeSide, ours: MergeSide, theirs: MergeSide):
     // Always present (maybe undefined), so spreading the result over a copy also clears them.
     importedCreatedAt: pick(base.importedCreatedAt, ours.importedCreatedAt, theirs.importedCreatedAt),
     importedUpdatedAt: pick(base.importedUpdatedAt, ours.importedUpdatedAt, theirs.importedUpdatedAt),
+    extra: mergeExtra(base.extra, ours.extra, theirs.extra),
   }
+}
+
+/** Fields this version doesn't know: per key, the same rule as the small flags. */
+function mergeExtra(base: Extra, ours: Extra, theirs: Extra): Extra {
+  const out: Record<string, unknown> = {}
+  const keys = new Set([...Object.keys(base ?? {}), ...Object.keys(ours ?? {}), ...Object.keys(theirs ?? {})])
+  for (const k of keys) {
+    const b = base?.[k]
+    const o = ours?.[k]
+    const t = theirs?.[k]
+    const v = sameJson(o, b) ? t : o
+    if (v !== undefined) out[k] = v
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+type Extra = Record<string, unknown> | undefined
+
+/** Equal JSON values (unknown fields come from JSON.parse, so a new object each time). */
+function sameJson(a: unknown, b: unknown) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b)
 }
 
 const CONFLICT = Symbol('conflict')

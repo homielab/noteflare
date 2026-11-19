@@ -31,7 +31,7 @@
     "dev:demo": "VITE_DEMO=1 vite",
     "typecheck": "tsc -b && tsc -p packages/client/tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:critical": "vitest run tests/crypto.test.ts tests/sync.test.ts tests/merge.test.ts tests/auth.test.ts tests/setup.test.ts tests/tokens.test.ts tests/passkeys.test.ts tests/shares.test.ts tests/backups.test.ts tests/export.test.ts tests/attachments.test.ts tests/selfUpdate.test.ts",
+    "test:critical": "vitest run tests/crypto.test.ts tests/sync.test.ts tests/merge.test.ts tests/auth.test.ts tests/setup.test.ts tests/tokens.test.ts tests/passkeys.test.ts tests/shares.test.ts tests/backups.test.ts tests/export.test.ts tests/attachments.test.ts tests/selfUpdate.test.ts tests/sdkUnknownFields.test.ts",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "deploy": "bun run build && wrangler deploy && bun run db:migrate:remote",

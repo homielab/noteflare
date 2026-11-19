@@ -430,6 +430,7 @@ function side(n: Note): MergeSide {
     reminder: n.reminder,
     importedCreatedAt: n.importedCreatedAt,
     importedUpdatedAt: n.importedUpdatedAt,
+    extra: n.extra,
   }
 }
 

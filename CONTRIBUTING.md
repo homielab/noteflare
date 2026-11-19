@@ -53,6 +53,7 @@ CI runs the type-check, both builds and `bun run test:critical`: only the tests 
 | `backups`, `export` | A backup or export can't be restored |
 | `attachments` | Images and files are lost, or served to someone else |
 | `selfUpdate` | Updating from the app fails |
+| `sdkUnknownFields` | An SDK edit deletes note fields added by a newer version |
 
 A new test file joins `test:critical` in `package.json` only when it guards one of these.
 
