@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Images, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
+import { Archive, Check, Coffee, Download, FileInput, Fingerprint, FileUp, FolderUp, HardDriveDownload, Images, Import, Info, Keyboard, KeyRound, Languages, LayoutGrid, Lock, LogOut, Moon, Pencil, Plug, Plus, RefreshCw, Rows3, Search, SquareCheckBig, StickyNote, Sun, Tag, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useVault } from '@/lib/vault'
@@ -588,28 +588,35 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                   <RefreshCw /> <span className="truncate">{syncLabel}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => importer.current?.pickFolder()}>
-                  <FolderUp /> {t('nb.importFolder')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => importer.current?.pickFiles()}>
-                  <FileUp /> {t('nb.importFiles')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    toast(t('imp.keepHint'))
-                    importer.current?.pickFolder()
-                  }}
-                >
-                  <StickyNote /> {t('nb.importKeep')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    toast(t('imp.otherHint'))
-                    importer.current?.pickFiles()
-                  }}
-                >
-                  <FileInput /> {t('nb.importOther')}
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Import /> {t('nb.import')}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onSelect={() => importer.current?.pickFolder()}>
+                      <FolderUp /> {t('nb.importFolder')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => importer.current?.pickFiles()}>
+                      <FileUp /> {t('nb.importFiles')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        toast(t('imp.keepHint'))
+                        importer.current?.pickFolder()
+                      }}
+                    >
+                      <StickyNote /> {t('nb.importKeep')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        toast(t('imp.otherHint'))
+                        importer.current?.pickFiles()
+                      }}
+                    >
+                      <FileInput /> {t('nb.importOther')}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 {(canInstall || needsIosHelp) && (
                   <DropdownMenuItem onSelect={() => (canInstall ? void install() : setIosHelpOpen(true))}>
                     <Download /> {t('nb.install')}
@@ -618,16 +625,20 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                 <DropdownMenuItem onSelect={() => (flush(), setBackupOpen(true))}>
                   <HardDriveDownload /> {t('nb.backup')}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="flex items-center gap-2">
-                  <Languages className="size-3.5" /> {t('nb.language')}
-                </DropdownMenuLabel>
-                {LANGS.map((l) => (
-                  <DropdownMenuItem key={l.code} onSelect={() => setLang(l.code)} lang={l.code}>
-                    <span className="grid size-4 place-items-center">{lang === l.code && <Check />}</span>
-                    {l.name}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Languages /> <span className="flex-1">{t('nb.language')}</span>
+                    <span className="text-xs text-muted-foreground" lang={lang}>{LANGS.find((l) => l.code === lang)?.name}</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {LANGS.map((l) => (
+                      <DropdownMenuItem key={l.code} onSelect={() => setLang(l.code)} lang={l.code}>
+                        <span className="grid size-4 place-items-center">{lang === l.code && <Check />}</span>
+                        {l.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => setIntOpen(true)}>
                   <Plug /> {t('nb.integrations')}

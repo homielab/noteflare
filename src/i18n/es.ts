@@ -141,6 +141,7 @@ export const es: Record<MessageKey, string> = {
   'bk.dailyRestore': 'Restaurar',
   'bk.dailyDownload': 'Descargar',
   'nb.language': 'Idioma',
+  'nb.import': 'Importar',
   'nb.importFolder': 'Importar una carpeta de Markdown…',
   'nb.importFiles': 'Importar archivos Markdown…',
   'nb.importKeep': 'Importar de Google Keep…',

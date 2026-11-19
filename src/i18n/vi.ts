@@ -141,6 +141,7 @@ export const vi: Record<MessageKey, string> = {
   'bk.dailyRestore': "Khôi phục",
   'bk.dailyDownload': "Tải về",
   'nb.language': 'Ngôn ngữ',
+  'nb.import': 'Nhập',
   'nb.importFolder': 'Nhập thư mục Markdown…',
   'nb.importFiles': 'Nhập file Markdown…',
   'nb.importKeep': 'Nhập từ Google Keep…',

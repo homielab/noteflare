@@ -139,6 +139,7 @@ export const en = {
   'bk.dailyRestore': "Restore",
   'bk.dailyDownload': "Download",
   'nb.language': 'Language',
+  'nb.import': 'Import',
   'nb.importFolder': 'Import a Markdown folder…',
   'nb.importFiles': 'Import Markdown files…',
   'nb.importKeep': 'Import from Google Keep…',

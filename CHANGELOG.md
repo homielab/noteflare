@@ -4,6 +4,14 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Changed
+
+- The account menu is shorter: Import and Language each open from one row.
+
+### Fixed
+
+- Menus taller than the screen now scroll, so Lock and Sign out are always within reach on a phone or a small window.
+
 ## [0.8.0] - 2026-11-18
 
 ### Added

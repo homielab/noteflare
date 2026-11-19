@@ -134,6 +134,7 @@ export const pt: Record<MessageKey, string> = {
   'bk.restoredNone': "Nada novo para restaurar. Todas as notas já estão aqui.",
   'bk.failed': "Não foi possível concluir. Tente de novo.",
   'nb.language': 'Idioma',
+  'nb.import': 'Importar',
   'nb.importFolder': 'Importar uma pasta de Markdown…',
   'nb.importFiles': 'Importar arquivos Markdown…',
   'nb.importKeep': 'Importar do Google Keep…',
