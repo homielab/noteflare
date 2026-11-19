@@ -21,6 +21,7 @@ import { bulkLabelChanges, commonLabels, renameLabelChanges, resolveLabel, resto
 import { RenameLabelDialog } from './RenameLabelDialog'
 import { ChangePassphraseDialog } from './ChangePassphraseDialog'
 import { PasskeysDialog } from './PasskeysDialog'
+import { ReminderPushDialog } from './ReminderPushDialog'
 import { IntegrationsDialog } from './IntegrationsDialog'
 import { BackupDialog } from './BackupDialog'
 import { AttachmentsContext, clearAttachments, deleteAttachments, unusedAttachments, uploadAttachment } from '@/lib/attachments'
@@ -35,6 +36,7 @@ import { ImportDropzone, type ImportHandle } from './ImportDropzone'
 import { ImageLibrary } from './ImageLibrary'
 import { scanLibrary } from '@/lib/library'
 import { useReminderAlerts, withReminders } from '@/lib/reminders'
+import { usePushSync } from '@/lib/push'
 
 type View = { kind: 'notes' } | { kind: 'archive' } | { kind: 'trash' } | { kind: 'label'; label: string } | { kind: 'images' } | { kind: 'reminders' }
 
@@ -70,6 +72,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   const [focusId, setFocusId] = useState<string | null>(null)
   const [pwOpen, setPwOpen] = useState(false)
   const [pkOpen, setPkOpen] = useState(false)
+  const [pushOpen, setPushOpen] = useState(false)
   const [intOpen, setIntOpen] = useState(false)
   const [backupOpen, setBackupOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -219,6 +222,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
   launchRef.current = (a) => {
     if (a.kind === 'new') return newNote()
     if (a.kind === 'files') return importer.current?.importFiles(a.files)
+    if (a.kind === 'note') return open(a.id)
     const n = { ...emptyNote(), title: a.title, body: a.text }
     upsert(n) // saved straight away, so nothing shared is lost if the app closes
     transition(() => setEditing(n), 'none')
@@ -252,6 +256,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
     if (n) transition(() => setEditing(n), { id })
   }
   useReminderAlerts(store.notes, open)
+  usePushSync(store.notes, lang)
   const openFromLibrary = (id: string) => {
     const n = store.byId.get(id)
     if (n) transition(() => setEditing(n), 'none')
@@ -658,6 +663,9 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
                     <DropdownMenuItem onSelect={() => setPwOpen(true)}>
                       <KeyRound /> {t('nb.changePassphrase')}
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setPushOpen(true)}>
+                      <Bell /> {t('push.menu')}
+                    </DropdownMenuItem>
                   </>
                 )}
                 {passkeySupport && (
@@ -843,7 +851,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
 
       <ImportDropzone
         ref={importer}
-        enabled={!editing && !pwOpen && !pkOpen && !intOpen && !backupOpen && !aboutOpen && !keysOpen}
+        enabled={!editing && !pwOpen && !pkOpen && !pushOpen && !intOpen && !backupOpen && !aboutOpen && !keysOpen}
         images={{ enabled: attachments, upload: (file) => uploadAttachment(dek, file) }}
         onImport={importMany}
         onDone={() => {
@@ -865,6 +873,7 @@ export function Notebook({ dek }: { dek: CryptoKey }) {
       <RenameLabelDialog label={renaming} labels={labels} onClose={() => setRenaming(null)} onRename={renameLabel} />
       <ChangePassphraseDialog open={pwOpen} onOpenChange={setPwOpen} />
       <PasskeysDialog open={pkOpen} onOpenChange={setPkOpen} />
+      <ReminderPushDialog open={pushOpen} onOpenChange={setPushOpen} notes={store.notes} />
       <IntegrationsDialog open={intOpen} onOpenChange={setIntOpen} />
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} dek={dek} notes={store.notes} onImport={(found) => importMany(found)} />
       <AboutDialog

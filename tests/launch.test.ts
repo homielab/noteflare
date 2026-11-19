@@ -5,6 +5,11 @@ describe('parseLaunchURL', () => {
   it('reads the New note shortcut', () => {
     expect(parseLaunchURL('/?new')).toEqual({ kind: 'new' })
   })
+  it('opens the note a reminder notification names', () => {
+    const id = '11111111-2222-4333-8444-555555555555'
+    expect(parseLaunchURL(`/?note=${id}`)).toEqual({ kind: 'note', id })
+    expect(parseLaunchURL('/?note=not-an-id')).toBeNull()
+  })
   it('turns a share into a note, adding the link only once', () => {
     expect(parseLaunchURL('/?share_title=Read%20later&share_text=Good%20post&share_url=https%3A%2F%2Fx.com%2Fa')).toEqual({
       kind: 'share',

@@ -67,6 +67,8 @@ Inside a note's ciphertext is JSON: `{ title, body, color, labels, reminder? }`,
 
 Reminders: set from the bell on any card or editor (presets: later today, tomorrow, next week, or pick a date). The Reminders view in the navigation bar lists upcoming and due notes, overdue on top. When a reminder becomes due while NoteFlare is open or running, the app shows an in-app toast and a desktop notification (asking permission only on the first reminder set). Older clients that do not support reminders simply ignore the field.
 
+Notifications while the app is closed are opt-in per device (**Reminder notifications** in the account menu, off by default), because they need the one thing about a reminder the server otherwise never sees: its time. With the switch on, the device subscribes to its browser's push service and sends the Worker its subscription and its list of upcoming reminders, as `{ noteId, dueAt }` only (`src/lib/push.ts` → `PUT /api/push/subscription`; the list replaces the device's rows, so a cleared reminder disappears with the next sync). Rows live in `push_subscriptions` and `reminders`, one set per device. A cron trigger every 5 minutes (`worker/push.ts`) sends a Web Push for each due row and deletes it; a subscription the push service reports gone is deleted with its rows. The push holds only the note id, encrypted for the device (RFC 8291) and signed with the deployment's VAPID key (made on first use, kept in the `settings` table). The service worker shows fixed words, saved by the app in its language, since it has no key to read the note; a click opens the app, and the note opens once it is unlocked. Trashing or deleting a note removes its rows for every device; switching off or signing out removes the device's subscription and rows. On iOS, web push needs the app added to the Home Screen. A device with the switch off sends nothing, so a reminder it sets or clears reaches the server only when a device with the switch on next syncs.
+
 ## Keys
 
 1. On first visit the browser creates a random 256-bit data key (DEK) and a recovery code.
@@ -128,6 +130,8 @@ The manifest declares a `share_target` (GET, so shares pass through Cloudflare A
 
 ## Scheduled work
 
+A second cron trigger runs every 5 minutes for reminder notifications (see Reminders above): one indexed query, and nothing else when no reminder is due. Each run sends at most 10 pushes, which keeps it inside the free plan's 10 ms of CPU and 50 subrequests per invocation; the rest go out with the next run. The two triggers use 2 of the 5 a free account has.
+
 A daily cron trigger deletes notes that have been in the trash for more than 30 days. With the `ATTACHMENTS` R2 binding, it then writes each user's encrypted backup (`worker/backups.ts`, the same file the app exports) to `backups/<email>/<date>.json` and keeps the newest 14. It also deletes expired shared links and links whose note no longer exists.
 
 ## Versions and updates
@@ -143,4 +147,4 @@ A daily cron trigger deletes notes that have been in the trash for more than 30 
 - **Cloudflare-only on purpose.** Workers, D1 and Access give a free, zero-maintenance deployment with login built in. The cost is portability; the API, SDK and Markdown export are there so data never gets stuck.
 - **No server-side search.** The server can't read notes, so search runs in the browser over decrypted notes.
 - **One codebase for crypto.** The web app, SDK and CLI share `packages/client`, so there is one implementation to review.
-- **No telemetry.** Nothing about you or your notes ever leaves your deployment. The only outbound request is the Worker's release check, which you can turn off.
+- **No telemetry.** Nothing about you or your notes ever leaves your deployment. The Worker's only outbound requests are its release check, which you can turn off, and, if you turn on reminder notifications for a closed app, a content-free push to your browser's push service when a reminder is due.

@@ -4,6 +4,7 @@
  * - `/?new`                         home-screen shortcut "New note"
  * - `/?share_title=…&share_text=…`  something shared to NoteFlare (manifest share_target)
  * - `.md` files                     opened with the installed app (manifest file_handlers)
+ * - `/?note=<id>`                   a reminder notification was clicked (or the service worker says so)
  *
  * With `launch_handler: focus-existing`, an installed NoteFlare that's already open is
  * focused instead of reloaded (which would lock it again) and the launch arrives through
@@ -14,6 +15,9 @@ export type LaunchAction =
   | { kind: 'new' }
   | { kind: 'share'; title: string; text: string }
   | { kind: 'files'; files: File[] }
+  | { kind: 'note'; id: string }
+
+const NOTE_ID_RE = /^[0-9a-f-]{36}$/i
 
 interface LaunchParams {
   targetURL?: string
@@ -38,6 +42,8 @@ function deliver(a: LaunchAction) {
 export function parseLaunchURL(href: string): LaunchAction | null {
   const p = new URL(href, 'https://x.invalid').searchParams
   if (p.has('new')) return { kind: 'new' }
+  const note = p.get('note')
+  if (note) return NOTE_ID_RE.test(note) ? { kind: 'note', id: note } : null
   const title = (p.get('share_title') ?? '').trim()
   let text = (p.get('share_text') ?? '').trim()
   const url = (p.get('share_url') ?? '').trim()
@@ -60,6 +66,12 @@ export function setupLaunch() {
   fromURL(location.href)
   // Keep the address clean so a reload doesn't repeat the launch.
   if (location.search) history.replaceState(null, '', location.pathname + location.hash)
+
+  // A reminder notification clicked while the app is open: the service worker names the note.
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    const data = e.data as { type?: unknown; id?: unknown } | null
+    if (data?.type === 'OPEN_NOTE' && typeof data.id === 'string' && NOTE_ID_RE.test(data.id)) deliver({ kind: 'note', id: data.id })
+  })
 
   const queue = (window as { launchQueue?: LaunchQueue }).launchQueue
   queue?.setConsumer(async (params) => {

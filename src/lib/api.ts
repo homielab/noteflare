@@ -13,6 +13,7 @@ import type {
   VaultRecord,
 } from '../../shared/types'
 import type { VersionInfo } from '../../shared/release'
+import type { PushSubscriptionBody } from '../../shared/push'
 
 export class ApiError extends Error {
   constructor(
@@ -120,6 +121,9 @@ export const api = {
   createNotes: (notes: BatchNoteItem[]) =>
     req<BatchResult>('/notes/batch', { method: 'POST', body: JSON.stringify({ notes }) }),
   deleteNote: (id: string) => req<void>(`/notes/${id}`, { method: 'DELETE' }),
+  pushKey: () => req<{ publicKey: string }>('/push/key'),
+  putPushSubscription: (body: PushSubscriptionBody) => req<{ reminders: number }>('/push/subscription', { method: 'PUT', body: JSON.stringify(body) }),
+  removePushSubscription: (endpoint: string) => req<void>('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   listTokens: () => req<ApiToken[]>('/tokens'),
   createToken: (body: CreateTokenBody) =>
     req<CreateTokenResponse>('/tokens', { method: 'POST', body: JSON.stringify(body) }),

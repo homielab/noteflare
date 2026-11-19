@@ -466,6 +466,22 @@ export const en = {
   'rem.due': 'Reminder',
   'rem.open': 'Open',
   'rem.untitled': 'Untitled note',
+
+  'push.menu': "Reminder notifications",
+  'push.title': "Reminder notifications",
+  'push.intro': "Reminders alert you while NoteFlare is open. This device can also be notified when the app is closed.",
+  'push.switch': "Notify me when the app is closed",
+  'push.stores': "While this is on, your server stores, for this device only: each upcoming reminder's time and its note's id, unencrypted, and this browser's push address. It never stores a note's title or text.",
+  'push.contacts': "When a reminder is due, your server asks your browser's push service (Google, Apple, Mozilla or Microsoft) to wake this device. The message has no note content, and the notification only says that a reminder is due.",
+  'push.off': "Off, which is the default, stores none of this. Turning it off, signing out, removing a reminder or moving its note to the trash deletes it from the server.",
+  'push.ios': "On iPhone and iPad this works only after you add NoteFlare to the Home Screen.",
+  'push.unsupported': "This browser can't show notifications while the app is closed.",
+  'push.blocked': "Notifications are blocked for NoteFlare. Allow them in your browser's settings, then try again.",
+  'push.failed': "Couldn't change this. Check your connection and try again.",
+  'push.turnedOn': "This device will be notified when a reminder is due",
+  'push.turnedOff': "Notifications are off. The server no longer has your reminder times",
+  'push.notifTitle': "A reminder is due",
+  'push.notifBody': "Open NoteFlare to see it.",
 } as const
 
 export type MessageKey = keyof typeof en

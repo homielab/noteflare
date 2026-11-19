@@ -7,6 +7,7 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 ### Added
 
 - Simplified Chinese UI. NoteFlare now picks 简体中文 automatically for Chinese browsers, and it can also be selected from the account menu.
+- Get reminder notifications when NoteFlare is closed: turn on **Notify me when the app is closed** under Reminder notifications in the account menu, on each device you want. It is off by default; on iPhone and iPad, add NoteFlare to the Home Screen first.
 
 ## [0.10.0] - 2026-11-19
 

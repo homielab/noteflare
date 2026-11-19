@@ -30,7 +30,7 @@ App ghi chú đơn giản, riêng tư, không cần máy chủ — mã hoá đ�
 - 💸 **Chạy miễn phí hoàn toàn**: một Worker, một database D1, Cloudflare Access — tất cả trên gói Free.
 - 🎨 **Tuỳ biến theo ý bạn**: React, Tailwind, shadcn/ui thuần; một API Hono nhỏ và các file migration SQL thuần.
 - 📝 **Ghi chú markdown**: tiêu đề, bảng, trích dẫn, code có tô màu cú pháp, checklist `- [ ]` tick ngay trên thẻ.
-- 📌 **Sắp xếp theo cách của bạn**: ghim, kéo ghi chú theo thứ tự bạn muốn, 8 màu giấy, nhãn, lời nhắc kèm danh sách đến hạn và thông báo khi đang mở ứng dụng, lưu trữ, thùng rác tự dọn sau 30 ngày. Chọn nhiều ghi chú, hoặc tất cả, rồi gắn nhãn hoặc chuyển vào thùng rác một lần; đổi tên hoặc xóa nhãn ở mọi ghi chú, hoặc tạo bản sao của một ghi chú.
+- 📌 **Sắp xếp theo cách của bạn**: ghim, kéo ghi chú theo thứ tự bạn muốn, 8 màu giấy, nhãn, lời nhắc kèm danh sách đến hạn và thông báo khi đang mở ứng dụng (và cả khi đã đóng ứng dụng, nếu bạn bật cho thiết bị đó), lưu trữ, thùng rác tự dọn sau 30 ngày. Chọn nhiều ghi chú, hoặc tất cả, rồi gắn nhãn hoặc chuyển vào thùng rác một lần; đổi tên hoặc xóa nhãn ở mọi ghi chú, hoặc tạo bản sao của một ghi chú.
 - 📥 **Kéo thả để nhập**: thả một thư mục Markdown (vault Obsidian cũng được), bản xuất Google Keep (kèm hình ảnh) hoặc bản xuất Evernote, Simplenote, Standard Notes, mọi ghi chú được mã hoá khi nhập.
 - 📤 **Xuất và sao lưu**: tải ghi chú về dạng Markdown, hoặc một bản sao lưu đã mã hoá để khôi phục sau này.
 - 🖼️ **Ảnh và file mã hoá** (tuỳ chọn): đính kèm ảnh, PDF hay bất kỳ file nào, được mã hoá trước khi tải lên và lưu trong bucket R2 của riêng bạn. Xem mọi ảnh trong một thư viện, kèm tab File cho các file còn lại.
@@ -130,7 +130,7 @@ Chi tiết: [Mã hoá](https://noteflare.homielab.com/vi/concepts/encryption/) v
 
 ## 🧱 Công nghệ
 
-Cloudflare Workers (Static Assets, Cron Trigger, Durable Objects) · D1 · R2 (tuỳ chọn) · Cloudflare Access + jose · Hono · React 19 · Tailwind CSS 4 · shadcn/ui · View Transitions API · TanStack Markdown + TanStack Highlight · WebCrypto + hash-wasm · Service Worker + IndexedDB (idb)
+Cloudflare Workers (Static Assets, Cron Triggers, Durable Objects) · D1 · R2 (tuỳ chọn) · Cloudflare Access + jose · Hono · React 19 · Tailwind CSS 4 · shadcn/ui · View Transitions API · TanStack Markdown + TanStack Highlight · WebCrypto + hash-wasm · Service Worker + IndexedDB (idb)
 
 ## 🚗 Lộ trình
 

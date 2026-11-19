@@ -8,6 +8,7 @@ import { backupKey, isBackupDate, listBackups, runScheduledBackups, toNote, toVa
 import { dispatchUpdate, selfUpdateRepo, UpdateDispatchError, versionInfo, type UpdateEnv } from './updates'
 import { notifyLive } from './live'
 import { isRateLimited, rateLimitedBody, RETRY_AFTER_S, type RateLimiter } from './rateLimit'
+import { dropNoteReminders, parseSubscription, PUSH_CRON, removeSubscription, saveSubscription, sendDuePushes, isPushEndpoint, vapidKeys } from './push'
 import { publicShare, purgeShares, revokeNoteShares, sharePage, sharePageHeaders, toShareInfo, type ShareRow } from './shares'
 import {
   BATCH_MAX_BYTES,
@@ -362,7 +363,10 @@ api.put('/notes/:id', needWrite, async (c) => {
           .run()
 
   // A note moved to the trash stops being shared; restoring it doesn't bring its links back.
-  if (res.meta.changes && body.trashedAt !== null) await revokeNoteShares(c.env.DB, user, id)
+  if (res.meta.changes && body.trashedAt !== null) {
+    await revokeNoteShares(c.env.DB, user, id)
+    await dropNoteReminders(c.env.DB, user, id).catch(() => {}) // the push tables may not exist yet
+  }
   const row = await getNote(c.env.DB, user, id)
   if (!res.meta.changes) {
     // Conflict: return the current server copy so the client can resolve it.
@@ -421,6 +425,7 @@ api.delete('/notes/:id', needWrite, async (c) => {
     .run()
   if (!res.meta.changes) return c.json({ error: 'not_found' }, 404)
   await revokeNoteShares(c.env.DB, c.get('user'), id)
+  await dropNoteReminders(c.env.DB, c.get('user'), id).catch(() => {})
   notifyLive(c.env, c.executionCtx, c.get('user'), [{ id, version: 0 }])
   return c.body(null, 204)
 })
@@ -482,6 +487,32 @@ api.delete('/shares/:id', sessionOnly, async (c) => {
     .bind(c.get('user'), c.req.param('id') ?? '')
     .run()
   return res.meta.changes ? c.body(null, 204) : c.json({ error: 'not_found' }, 404)
+})
+
+// ---------- Reminder notifications while the app is closed (web app only, opt-in per device) ----------
+// Nothing is stored until a device turns the switch on. Then: its push subscription and, per
+// reminder, the due time and the note id. Never a title or text (see worker/push.ts).
+
+api.get('/push/key', sessionOnly, async (c) => {
+  const vapid = await vapidKeys(c.env.DB, true)
+  return c.json({ publicKey: vapid!.publicKey })
+})
+
+/** The device's subscription and its full list of upcoming reminders; rows not in the list are deleted. */
+api.put('/push/subscription', sessionOnly, async (c) => {
+  const body = parseSubscription(await c.req.json().catch(() => null))
+  if (!body) return c.json({ error: 'bad_request' }, 400)
+  const res = await saveSubscription(c.env.DB, c.get('user'), body, Date.now())
+  if (!res.ok) return c.json({ error: res.error, message: 'Turn notifications off on another device first.' }, 409)
+  return c.json({ reminders: res.reminders })
+})
+
+/** Switch off or sign-out: deletes the device's subscription and its reminder rows. */
+api.post('/push/unsubscribe', sessionOnly, async (c) => {
+  const body = await c.req.json<{ endpoint?: unknown }>().catch(() => null)
+  if (!isPushEndpoint(body?.endpoint)) return c.json({ error: 'bad_request' }, 400)
+  await removeSubscription(c.env.DB, c.get('user'), body.endpoint)
+  return c.body(null, 204)
 })
 
 // ---------- API tokens (web app only) ----------
@@ -748,7 +779,12 @@ function isB64(v: unknown, maxLen: number): v is string {
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event, env) {
+  async scheduled(event, env) {
+    // Every 5 minutes: reminders that are due. Without the tables (migration not applied) there is nothing to send.
+    if (event.cron === PUSH_CRON) {
+      await sendDuePushes(env.DB, Date.now()).catch((e) => console.error('push', e))
+      return
+    }
     await env.DB.prepare('DELETE FROM notes WHERE trashed_at IS NOT NULL AND trashed_at < ?')
       .bind(Date.now() - TRASH_TTL_MS)
       .run()

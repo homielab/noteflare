@@ -55,8 +55,10 @@
     "UPDATE_CHECK_REPO": "homielab/noteflare"
   },
 
-  // Empty the trash: permanently delete notes trashed more than 30 days ago
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Daily: empty the trash (notes trashed more than 30 days ago) and save backups.
+  // Every 5 minutes: send reminder notifications to devices that turned them on; one
+  // indexed query when nothing is due (288 runs a day, well inside the free plan).
+  "triggers": { "crons": ["17 3 * * *", "*/5 * * * *"] },
 
   "observability": { "enabled": true }
 }

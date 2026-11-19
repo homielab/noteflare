@@ -6,6 +6,8 @@
  *   expired, the login redirect must reach the browser. The cached shell is used
  *   only when the network fails or is too slow.
  * - /api is never touched here. Notes are cached by the app itself, encrypted, in IndexedDB.
+ * - A push (reminder notifications, opt-in) shows a notification with fixed words: the worker
+ *   has no key, so it can't read a note. A click opens the app on that note once it's unlocked.
  * - A new version installs in the background and waits. The app asks the user to reload,
  *   then sends SKIP_WAITING, so a page never runs against assets from another version.
  *
@@ -49,6 +51,60 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting()
+})
+
+// The app saves the notification's words here in its own language (see src/lib/push.ts).
+const PUSH_TEXT_CACHE = 'nf-push-text'
+const PUSH_TEXT_URL = '/push-text.json'
+const NOTE_ID_RE = /^[0-9a-f-]{36}$/i
+
+async function pushText() {
+  try {
+    const cache = await caches.open(PUSH_TEXT_CACHE)
+    const saved = await (await cache.match(PUSH_TEXT_URL))?.json()
+    if (saved?.title) return saved
+  } catch {
+    // fall through
+  }
+  return { title: 'A reminder is due', body: 'Open NoteFlare to see it.' }
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    (async () => {
+      let noteId = ''
+      try {
+        const id = event.data?.json()?.n
+        if (typeof id === 'string' && NOTE_ID_RE.test(id)) noteId = id
+      } catch {
+        // no or unreadable payload: still tell the user something is due
+      }
+      const text = await pushText()
+      // The same tag as the alert the open app shows, so one reminder is one notification.
+      await self.registration.showNotification(text.title, {
+        body: text.body,
+        tag: noteId || 'reminder',
+        icon: '/icons/icon-192.png',
+        data: { noteId },
+      })
+    })(),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const noteId = event.notification.data?.noteId
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const client = windows[0]
+      if (client) {
+        if (noteId) client.postMessage({ type: 'OPEN_NOTE', id: noteId })
+        return client.focus()
+      }
+      return self.clients.openWindow(noteId ? `/?note=${noteId}` : '/')
+    })(),
+  )
 })
 
 self.addEventListener('fetch', (event) => {

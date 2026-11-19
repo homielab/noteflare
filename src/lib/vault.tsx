@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { disablePush } from './push'
 import type { PasskeyRecord, VaultRecord } from '../../shared/types'
 import { api, ApiError } from './api'
 import { localStore } from './sync/localStore'
@@ -19,6 +20,8 @@ const SIGN_OUT_CHANNEL = 'noteflare:sign-out'
  * to sign out. Each step is best-effort so sign-out always finishes.
  */
 async function wipeDevice() {
+  // Reminder notifications: delete this device's rows on the server while the session still works.
+  await Promise.race([disablePush().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 4000))])
   const steps: Promise<unknown>[] = [localStore.destroy(), blobCache.destroy()]
   try {
     const channel = new BroadcastChannel(SIGN_OUT_CHANNEL)

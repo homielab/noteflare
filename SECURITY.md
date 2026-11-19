@@ -42,6 +42,7 @@ NoteFlare is pre-1.0. Only the latest release on `main` gets security fixes, so 
 - **Weak passphrases.** Argon2id slows guessing; it doesn't make "password1" safe.
 - **Metadata analysis.** See the table below.
 - **Someone who can use your unlocked device's passkeys.** A passkey unlocks NoteFlare like the passphrase does. Anyone who passes your device's Face ID, Touch ID or PIN, or your passkey provider's account (for synced passkeys), can unlock. Remove a passkey in NoteFlare when you lose that device.
+- **Reminder times, on devices where you turn on notifications for a closed app.** A closed app can't count down, so the server has to know when to wake it. On each device where you switch on **Notify me when the app is closed**, the server stores that browser's push subscription and, for every upcoming reminder, its due time and note id in plain text, and at that time it sends a push through the browser vendor's push service (Google, Apple, Mozilla or Microsoft). The note's title and text are never stored or sent: the push carries only the note id, encrypted for that device, and the notification's words are fixed ("A reminder is due"). The switch is off by default; turning it off, signing out, clearing the reminder or trashing the note deletes the rows.
 - **Losing both your passphrase and recovery code.** There is no backdoor, so there is no recovery.
 - **Offline guessing after a leak.** Anyone who gets the wrapped key and salt can try passphrases offline at Argon2id speed. That includes a leaked token (read or write), a copy of the database, or the offline copy on a lost device. A long passphrase makes this impractical; a short one doesn't. Treat tokens like a copy of your encrypted database.
 - **A malicious server rolling notes back or hiding them.** Encryption stops the server reading or forging content. It can still serve an older version of a note, withhold or delete notes, or change the unencrypted flags (pinned, archived, trashed), which could send a note to the trash to be purged. Keep exports (`noteflare export`) of anything you can't lose.
@@ -64,9 +65,13 @@ NoteFlare is pre-1.0. Only the latest release on `main` gets security fixes, so 
 | Passkey names, credential ids and PRF salts | The secret each passkey's PRF returns |
 | API token names, scopes, prefixes and last-used times (token values are stored only as SHA-256 hashes) | |
 | Shared links: which note each one points to, when it was created and expires | The shared snapshot (title and text) and its key |
+| Only on devices where you turned on reminder notifications for a closed app: that browser's push subscription (an address at its push service and two public keys) and, for each upcoming reminder, the due time and the note id | The reminded note's title and text. With the switch off (the default), also when a reminder is due and that a note has one |
 | Request IPs and times, as for any Cloudflare Worker | |
 
-The Worker makes one kind of outbound request: every few hours it asks the GitHub API for the latest NoteFlare release, so the app can show an update notice. The request contains no user data. Set `UPDATE_CHECK_REPO` to `"off"` to disable it.
+The Worker makes two kinds of outbound request:
+
+- Every few hours it asks the GitHub API for the latest NoteFlare release, so the app can show an update notice. The request contains no user data. Set `UPDATE_CHECK_REPO` to `"off"` to disable it.
+- Only if a device turned on reminder notifications for a closed app: when one of its reminders is due, a Web Push request to that browser's push service (`fcm.googleapis.com`, `*.push.apple.com`, `updates.push.services.mozilla.com` or `*.notify.windows.com`; the Worker refuses any other address). The push service learns that your deployment notified that browser at that moment, and nothing else: the message holds only the note id, encrypted so that only the device can read it, and the sender is identified by a key made for your deployment, not by your email. With the switch off everywhere, this request is never made.
 
 ### What a token can do
 
@@ -77,6 +82,7 @@ The Worker makes one kind of outbound request: every few hours it asks the GitHu
 | Change the passphrase (re-wrap keys) | | | ✓ |
 | Create or revoke tokens | | | ✓ |
 | Add or remove passkeys | | | ✓ |
+| Turn reminder notifications for a closed app on or off | | | ✓ |
 
 Tokens are accepted only on `/api/v1`, never as cookies, so they can't be used for CSRF. The web app's `/api` routes accept only a Cloudflare Access session.
 
@@ -102,6 +108,7 @@ Tokens are accepted only on `/api/v1`, never as cookies, so they can't be used f
 - A thumbnail is an attachment like any other: its own id, IV and AAD. Its id is written only inside the encrypted note.
 - On your device the app keeps notes, the wrapped keys and downloaded attachments in IndexedDB as the same ciphertext the server holds; decrypted notes and images exist only in memory. Signing out deletes all of it.
 - In the browser the data key is a non-extractable `CryptoKey` held only in memory.
+- Reminder pushes: Web Push with a VAPID key pair (ECDSA P-256) made on first use and kept in D1; the payload is encrypted for the device with **ECDH P-256 + HKDF-SHA256 + AES-128-GCM** (RFC 8291) in [`worker/push.ts`](worker/push.ts).
 - Random 96-bit IVs are safe for far more saves than a person makes (the limit is around 2³² encryptions per key).
 
 The implementation lives in [`packages/client/src/crypto.ts`](packages/client/src/crypto.ts), about 250 lines using WebCrypto and `hash-wasm`. **It has not been independently audited.** Review is very welcome; findings go through the private report above.

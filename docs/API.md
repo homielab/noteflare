@@ -210,6 +210,8 @@ never sent automatically by browsers, so this is safe).
 | GET | `/backups` | read | `{ "backups": [{ "date": "2026-11-16", "size": 12345 }] }`, newest first; empty without the R2 binding |
 | GET | `/backups/{date}` | read | One daily backup (`YYYY-MM-DD`): the encrypted JSON file the app exports. `501` without the R2 binding |
 
+Reminder notifications for a closed app are also managed by the web app only (`/api/push/*`, Access session; tokens get `403`). A reminder set through the API is inside the ciphertext like the rest of the note; a device that has those notifications on tells the server its time the next time it syncs.
+
 Shared links are managed by the web app only (`/api/shares`, Access session; tokens get `403`). Their public side, `GET /api/share/{id}`, needs no auth and returns only `{ ciphertext, iv, expiresAt }`, or `404` when the link is revoked, expired or its note is in the trash.
 
 A note as stored on the server:
