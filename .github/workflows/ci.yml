@@ -1,13 +1,11 @@
 name: CI
 
-# Docs-only changes need no check. Pull requests come from branches, so a commit runs once:
-# on its pull request, or on main.
+# Runs on release tags; release.yml waits for this run on the tagged commit before it publishes.
+# Release tags only (Boss 2026-11-21: no CI on push to main).
 on:
   push:
-    branches: [main]
-    paths-ignore: ['**.md', 'docs/**', 'examples/**', 'LICENSE']
-  pull_request:
-    paths-ignore: ['**.md', 'docs/**', 'examples/**', 'LICENSE']
+    tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read

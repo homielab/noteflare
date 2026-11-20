@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  # CI already checked this commit (typecheck, critical tests, build): reuse its result
+  # CI runs on the same tag (typecheck, critical tests, build): wait for its result
   # instead of running it all again. No CI run, or a failed one, stops the release.
   verify:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
             fi
             # A tag pushed together with its commit: CI may not have started or finished yet.
             if [ -z "$run" ] && [ "$attempt" -ge 12 ]; then
-              echo "::error::CI has not run on $GITHUB_SHA. Push the commit to main first; a commit that only changes docs skips CI and can't be released."
+              echo "::error::CI has not run on $GITHUB_SHA. Run the CI workflow on this tag, then run this workflow again."
               exit 1
             fi
             sleep 10
