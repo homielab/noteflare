@@ -6,6 +6,7 @@ import { es } from '../src/i18n/es'
 import { fr } from '../src/i18n/fr'
 import { de } from '../src/i18n/de'
 import { pt } from '../src/i18n/pt'
+import { zh } from '../src/i18n/zh'
 
 const LOCALES: [string, Record<MessageKey, string>][] = [
   ['vi', vi],
@@ -13,6 +14,7 @@ const LOCALES: [string, Record<MessageKey, string>][] = [
   ['fr', fr],
   ['de', de],
   ['pt', pt],
+  ['zh', zh],
 ]
 
 describe('i18n locales', () => {
@@ -34,6 +36,8 @@ describe('detectLang', () => {
     expect(detectLang(['fr-CA'])).toBe('fr')
     expect(detectLang(['pt-PT'])).toBe('pt')
     expect(detectLang(['de-DE', 'en'])).toBe('de')
+    expect(detectLang(['zh-CN'])).toBe('zh')
+    expect(detectLang(['zh-Hans', 'en'])).toBe('zh')
     expect(detectLang(['ja-JP'])).toBe('en')
     expect(detectLang(['ja', 'es-MX'])).toBe('es')
     expect(detectLang([])).toBe('en')
