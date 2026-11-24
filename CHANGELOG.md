@@ -4,6 +4,10 @@ All notable changes to NoteFlare are recorded here. The format follows [Keep a C
 
 ## [Unreleased]
 
+### Added
+
+- Simplified Chinese UI. NoteFlare now picks 简体中文 automatically for Chinese browsers, and it can also be selected from the account menu.
+
 ## [0.10.0] - 2026-11-19
 
 ### Changed
