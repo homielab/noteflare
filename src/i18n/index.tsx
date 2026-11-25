@@ -5,9 +5,10 @@ import { es } from './es'
 import { fr } from './fr'
 import { de } from './de'
 import { pt } from './pt'
+import { zh } from './zh'
 
 export type { MessageKey }
-export type Lang = 'en' | 'vi' | 'es' | 'fr' | 'de' | 'pt'
+export type Lang = 'en' | 'vi' | 'es' | 'fr' | 'de' | 'pt' | 'zh'
 export const LANGS: { code: Lang; name: string }[] = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Español' },
@@ -15,9 +16,10 @@ export const LANGS: { code: Lang; name: string }[] = [
   { code: 'de', name: 'Deutsch' },
   { code: 'pt', name: 'Português (Brasil)' },
   { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'zh', name: '简体中文' },
 ]
 
-const dicts: Record<Lang, Record<MessageKey, string>> = { en, vi, es, fr, de, pt }
+const dicts: Record<Lang, Record<MessageKey, string>> = { en, vi, es, fr, de, pt, zh }
 
 /**
  * Pick the first browser language we speak, by prefix ('es-419' → 'es',
@@ -31,6 +33,7 @@ export function detectLang(prefs: readonly string[]): Lang {
     if (p.startsWith('de')) return 'de'
     if (p.startsWith('pt')) return 'pt'
     if (p.startsWith('vi')) return 'vi'
+    if (p.startsWith('zh')) return 'zh'
     if (p.startsWith('en')) return 'en'
   }
   return 'en'
@@ -70,6 +73,7 @@ const DATE_LOCALES: Record<Lang, string> = {
   fr: 'fr-FR',
   de: 'de-DE',
   pt: 'pt-BR',
+  zh: 'zh-CN',
 }
 
 export const dateLocale = () => DATE_LOCALES[current]
